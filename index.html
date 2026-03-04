@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Client Period Totals</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b1220">
 </head>
 
 <body>
@@ -22,6 +24,8 @@
       <button id="modeEditBtn" class="toggle-btn active">Edit</button>
       <button id="modeReviewBtn" class="toggle-btn">Review</button>
     </div>
+    
+    <button id="controlsToggle" class="btn small">Controls</button>
 
     <!-- Controls -->
     <div class="controls">
@@ -133,7 +137,9 @@
 
         <div class="period-actions">
           <button class="btn small addRow">+ Add client</button>
-          <button class="btn small danger removePeriod">Delete period</button>
+          <td class="actions">
+           <button class="btn danger small removeRow">Remove</button>
+          </td>
         </div>
       </div>
 
@@ -141,10 +147,11 @@
         <table class="tbl">
           <thead>
             <tr>
-              <th style="width: 40%">Customer</th>
-              <th style="width: 20%">Gross</th>
-              <th style="width: 20%">Net</th>
-              <th style="width: 20%">Actions</th>
+              <th style="width: 32%">Customer</th>
+              <th style="width: 18%">Gross</th>
+              <th style="width: 18%">Net</th>
+              <th style="width: 18%">City</th>
+              <th style="width: 14%">Actions</th>
             </tr>
           </thead>
           <tbody class="rows"></tbody>
@@ -168,14 +175,14 @@
       <td><input class="cust" type="text" placeholder="Client name" /></td>
       <td><input class="gross" type="text" inputmode="decimal" placeholder="0" /></td>
       <td><input class="net" type="text" inputmode="decimal" placeholder="0" /></td>
-      <td>
-        <button class="btn small ghost removeRow">Remove</button>
-      </td>
+      <td><input class="city" type="text" placeholder="City" /></td>
+      <td><button class="btn small ghost removeRow">Remove</button></td>
     </tr>
   </template>
 
   <!-- Scroll to top button (must be inside body) -->
   <button id="toTopBtn" class="to-top" aria-label="Back to top">↑</button>
+  <button id="fabAddClient" class="btn primary fab-add-client">+ Add client</button>
 
 <!-- Confirm Modal -->
   <div id="confirmModal" class="modal-backdrop" style="display:none;">
@@ -192,6 +199,10 @@
   <!-- ✅ script MUST be inside body, before closing -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" ></script>
   <script src="app.js"></script>
-  <script src="app.js"></script>
+  <script>
+     if ("serviceWorker" in navigator) {
+       navigator.serviceWorker.register("service-worker.js");
+  }
+</script>
 </body>
 </html>
