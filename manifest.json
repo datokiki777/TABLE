@@ -6,15 +6,17 @@
   "background_color": "#0b1220",
   "theme_color": "#0b1220",
   "orientation": "portrait",
-  "icons": [
+  [
   {
-    "src": "icon-192.png",
+    "purpose": "maskable",
     "sizes": "192x192",
+    "src": "maskable_icon_x192.png",
     "type": "image/png"
   },
   {
-    "src": "icon-512.png",
+    "purpose": "maskable",
     "sizes": "512x512",
+    "src": "maskable_icon_x512.png",
     "type": "image/png"
   }
 ]
