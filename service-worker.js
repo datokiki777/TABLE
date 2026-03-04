@@ -1,5 +1,13 @@
 const CACHE = "client-totals-v1";
 
+self.addEventListener("install", (event) => {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(clients.claim());
+});
+
 const ASSETS = [
   "./",
   "./index.html",
@@ -17,4 +25,5 @@ self.addEventListener("fetch", e => {
   e.respondWith(
     caches.match(e.request).then(res => res || fetch(e.request))
   );
+
 });
