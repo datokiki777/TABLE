@@ -62,6 +62,7 @@
         <!-- BACKUP (ALL GROUPS) -->
         <div class="btn-row backup-row">
           <button id="exportAllBtn" class="btn">Export All</button>
+          <button id="pdfAllBtn" class="btn">PDF (All)</button>
           <label id="importAllLabel" class="btn file">
              Import All
              <input id="importAllInput" type="file" accept="application/json" hidden />
@@ -189,6 +190,8 @@
   </div>
 
   <!-- ✅ script MUST be inside body, before closing -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" ></script>
+  <script src="app.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
