@@ -1,7 +1,17 @@
+/* =========================================================
+   Client Totals — Dark Glass UI (Clean + Stable Mobile)
+   - No JS topbar collapse (prevents flicker on Android)
+   - Clean sections & no duplicate selectors
+   - Optional FAB add-client support
+========================================================= */
+
+/* =========================
+   1) Theme + Base
+========================= */
+
 :root{
   --bg:#0b1220;
   --card:#101a2f;
-  --card2:#0f1730;
   --text:#e7eefc;
   --muted:#9db0d6;
   --line:rgba(255,255,255,.10);
@@ -12,31 +22,37 @@
   --radius:16px;
 }
 
-*{box-sizing:border-box}
+*{ box-sizing:border-box; }
+
 body{
   margin:0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  background: radial-gradient(1200px 800px at 10% -10%, rgba(93,212,255,.20), transparent 50%),
-              radial-gradient(900px 700px at 90% 0%, rgba(52,211,153,.16), transparent 55%),
-              var(--bg);
+  background:
+    radial-gradient(1200px 800px at 10% -10%, rgba(93,212,255,.20), transparent 50%),
+    radial-gradient(900px 700px at 90% 0%, rgba(52,211,153,.16), transparent 55%),
+    var(--bg);
   color:var(--text);
 }
+
+/* =========================
+   2) Topbar (Stable, no collapse)
+========================= */
 
 .topbar{
   position: sticky;
   top:0;
-  z-index:10;
+  z-index:999;
   display:flex;
+  flex-direction:column;
   gap:14px;
-  justify-content:space-between;
-  align-items:center;
-  padding:14px 14px;
+  padding:14px;
   border-bottom:1px solid var(--line);
   background: rgba(11,18,32,.85);
   backdrop-filter: blur(10px);
 }
 
-.brand{display:flex;align-items:center;gap:12px}
+.brand{ display:flex; align-items:center; gap:12px; }
+
 .logo{
   width:42px;height:42px;border-radius:12px;
   display:grid;place-items:center;
@@ -44,229 +60,13 @@ body{
   border: 1px solid var(--line);
   font-weight:800;
 }
-.title{font-size:16px;font-weight:800}
-.subtitle{font-size:12px;color:var(--muted)}
 
-.controls{display:flex;gap:10px;align-items:end;flex-wrap:wrap;justify-content:flex-end}
-.field{display:flex;flex-direction:column;gap:6px}
-.field span{font-size:12px;color:var(--muted)}
-.field input{
-  height:38px;
-  padding:8px 10px;
-  border-radius:12px;
-  border:1px solid var(--line);
-  background: rgba(255,255,255,.06);
-  color:var(--text);
-  outline:none;
-}
-.field input:focus{border-color: rgba(93,212,255,.65)}
+.title{ font-size:16px; font-weight:800; }
+.subtitle{ font-size:12px; color:var(--muted); }
 
-.btn{
-  border:1px solid var(--line);
-  background: rgba(255,255,255,.06);
-  color:var(--text);
-  padding:9px 12px;
-  border-radius:12px;
-  cursor:pointer;
-  box-shadow: none;
-}
-.btn:hover{border-color: rgba(255,255,255,.22)}
-.btn.primary{background: rgba(93,212,255,.20); border-color: rgba(93,212,255,.45)}
-.btn.danger{background: rgba(255,93,93,.16); border-color: rgba(255,93,93,.38)}
-.btn.ghost{background: transparent}
-.btn.small{padding:7px 10px;border-radius:10px;font-size:12px}
-.btn.file{position:relative; overflow:hidden}
-
-.container{max-width:1100px;margin:18px auto;padding:0 14px 40px}
-.card{
-  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-  border:1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding:14px;
-}
-
-.summary h2{margin:0 0 10px 0;font-size:16px}
-.summary-grid{display:grid;grid-template-columns: repeat(3,1fr);gap:10px}
-.kpi{
-  border:1px solid var(--line);
-  border-radius:14px;
-  padding:12px;
-  background: rgba(255,255,255,.04);
-}
-.kpi-label{font-size:12px;color:var(--muted)}
-.kpi-value{font-size:18px;font-weight:900;margin-top:4px}
-.hint{margin-top:10px;color:var(--muted);font-size:12px}
-
-.period{margin-top:14px}
-.period-head{
-  display:flex;
-  gap:12px;
-  justify-content:space-between;
-  align-items:flex-start;
-  flex-wrap:wrap;
-}
-.period-title h2{margin:0;font-size:16px}
-.period-dates{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-.period-actions{display:flex;gap:10px}
-
-.table-wrap{margin-top:12px;overflow:auto;border-radius:14px;border:1px solid var(--line)}
-.tbl{width:100%;border-collapse:collapse;min-width:720px;background: rgba(0,0,0,.10)}
-.tbl th,.tbl td{border-bottom:1px solid var(--line);padding:10px;text-align:left}
-.tbl th{font-size:12px;color:var(--muted);background: rgba(255,255,255,.04);position:sticky;top:0}
-.tbl td input{
-  width:100%;
-  height:36px;
-  border-radius:10px;
-  border:1px solid var(--line);
-  background: rgba(255,255,255,.05);
-  color:var(--text);
-  padding:8px 10px;
-  outline:none;
-}
-.tbl td input:focus{border-color: rgba(93,212,255,.65)}
-
-.total-row td{
-  background: rgba(52,211,153,.14);
-  font-weight:800;
-  border-bottom:none;
-}
-.total-label{letter-spacing:.4px}
-.pill{
-  display:inline-flex; gap:8px; align-items:center;
-  padding:8px 10px;
-  border-radius:999px;
-  background: rgba(93,212,255,.14);
-  border:1px solid rgba(93,212,255,.28);
-}
-
-.footer{margin-top:16px;color:var(--muted);font-size:12px;text-align:center}
-
-.to-top{
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  width: 46px;
-  height: 46px;
-  border: 0;
-  border-radius: 14px;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  font-size: 20px;
-  opacity: 0;
-  transform: translateY(10px);
-  pointer-events: none;
-  transition: opacity .2s ease, transform .2s ease;
-  background: rgba(255,255,255,0.10);
-  color: rgba(255,255,255,0.92);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-  backdrop-filter: blur(10px);
-}
-
-.to-top.show{
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-
-.group-field .group-row{
-  display:flex;
-  gap:8px;
-  align-items:center;
-  flex-wrap:wrap;
-}
-
-.select{
-  height:38px;
-  padding:8px 10px;
-  border-radius:12px;
-  border:1px solid var(--line);
-  background: rgba(255,255,255,.06);
-  color:var(--text);
-  outline:none;
-  min-width: 180px;
-}
-.select:focus{border-color: rgba(93,212,255,.65)}
-
-.modal-backdrop{
-  position:fixed;
-  inset:0;
-  background: rgba(0,0,0,.55);
-  display:grid;
-  place-items:center;
-  z-index: 999;
-  padding: 16px;
-}
-
-.modal{
-  width: min(420px, 100%);
-  border-radius: 18px;
-  border: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(12px);
-  padding: 14px;
-}
-
-.modal-title{
-  font-weight: 900;
-  font-size: 16px;
-  margin-bottom: 8px;
-}
-
-.modal-text{
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.modal-actions{
-  display:flex;
-  gap:10px;
-  justify-content:flex-end;
-  margin-top: 14px;
-}
-
-.summary-head{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  margin-bottom: 10px;
-}
-
-.toggle{
-  display:flex;
-  border:1px solid var(--line);
-  background: rgba(255,255,255,.04);
-  border-radius: 999px;
-  padding: 4px;
-  gap:4px;
-}
-
-.toggle-btn{
-  border:0;
-  background: transparent;
-  color: var(--muted);
-  padding: 8px 10px;
-  border-radius: 999px;
-  cursor:pointer;
-  font-size: 12px;
-}
-
-.toggle-btn.active{
-  background: rgba(93,212,255,.18);
-  color: var(--text);
-  border: 1px solid rgba(93,212,255,.28);
-}
-
-/* --- Topbar layout helpers --- */
-.topbar{
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-}
+/* =========================
+   3) Controls layout
+========================= */
 
 .controls{
   display:flex;
@@ -297,75 +97,229 @@ body{
   justify-content:flex-end;
 }
 
-.backup-row{
-  opacity:0.95;
-}
+.backup-row{ opacity:.95; }
 
-@media (max-width: 700px){
+@media (max-width:700px){
   .actions-right{ align-items:stretch; width:100%; }
   .btn-row{ justify-content:stretch; }
   .btn-row .btn, .btn-row .file{ flex:1; text-align:center; }
 }
 
 /* =========================
-   Review Mode
+   4) Fields + Inputs
 ========================= */
 
-.mode-toggle{
+.field{ display:flex; flex-direction:column; gap:6px; }
+.field span{ font-size:12px; color:var(--muted); }
+
+.field input,
+.select{
+  height:38px;
+  padding:8px 10px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background: rgba(255,255,255,.06);
+  color:var(--text);
+  outline:none;
+}
+
+.field input:focus,
+.select:focus{ border-color: rgba(93,212,255,.65); }
+
+.select{ min-width:180px; }
+
+/* Group row helper */
+.group-field .group-row{
   display:flex;
   gap:8px;
   align-items:center;
-  margin-left:auto;
+  flex-wrap:wrap;
 }
 
-.toggle-btn{
+/* =========================
+   5) Buttons
+========================= */
+
+.btn{
   border:1px solid var(--line);
   background: rgba(255,255,255,.06);
-  color: var(--text);
-  padding:8px 10px;
-  border-radius: 12px;
+  color:var(--text);
+  padding:9px 12px;
+  border-radius:12px;
   cursor:pointer;
-  font-weight:800;
-  font-size:12px;
 }
 
-.toggle-btn.active{
+.btn:hover{ border-color: rgba(255,255,255,.22); }
+
+.btn.primary{
   background: rgba(93,212,255,.20);
   border-color: rgba(93,212,255,.45);
 }
+
+.btn.danger{
+  background: rgba(255,93,93,.16);
+  border-color: rgba(255,93,93,.38);
+}
+
+.btn.ghost{ background: transparent; }
+.btn.small{ padding:7px 10px; border-radius:10px; font-size:12px; }
+.btn.file{ position:relative; overflow:hidden; }
+
+/* =========================
+   6) Container + Cards
+========================= */
+
+.container{ max-width:1100px; margin:18px auto; padding:0 14px 40px; }
+
+.card{
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  border:1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding:14px;
+}
+
+/* =========================
+   7) Summary (Grand total)
+========================= */
+
+.summary h2{ margin:0 0 10px 0; font-size:16px; }
+
+.summary-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.summary-grid{
+  display:grid;
+  grid-template-columns: repeat(3,1fr);
+  gap:10px;
+}
+
+.kpi{
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  background: rgba(255,255,255,.04);
+}
+
+.kpi-label{ font-size:12px; color:var(--muted); }
+.kpi-value{ font-size:18px; font-weight:900; margin-top:4px; }
+
+/* =========================
+   8) Toggle (Active / All)
+========================= */
+
+.toggle{
+  display:flex;
+  border:1px solid var(--line);
+  background: rgba(255,255,255,.04);
+  border-radius:999px;
+  padding:4px;
+  gap:4px;
+}
+
+.toggle-btn{
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  padding:8px 10px;
+  border-radius:999px;
+  cursor:pointer;
+  font-size:12px;
+  font-weight:800;
+}
+
+.toggle-btn.active{
+  background: rgba(93,212,255,.18);
+  color: var(--text);
+  border: 1px solid rgba(93,212,255,.28);
+}
+
+/* =========================
+   9) Period cards + table
+========================= */
+
+.period{ margin-top:14px; }
+
+.period-head{
+  display:flex;
+  gap:12px;
+  justify-content:space-between;
+  align-items:flex-start;
+  flex-wrap:wrap;
+}
+
+.period-title h2{ margin:0; font-size:16px; }
+.period-dates{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+.period-actions{ display:flex; gap:10px; }
+
+.table-wrap{
+  margin-top:12px;
+  overflow:auto;
+  border-radius:14px;
+  border:1px solid var(--line);
+}
+
+.tbl{width:100%;border-collapse:collapse;min-width:860px;background: rgba(0,0,0,.10)}
+
+.tbl th,.tbl td{
+  border-bottom:1px solid var(--line);
+  padding:10px;
+  text-align:left;
+}
+
+.tbl th{
+  font-size:12px;
+  color:var(--muted);
+  background: rgba(255,255,255,.04);
+  position:sticky;
+  top:0;
+}
+
+.tbl td input{
+  width:100%;
+  height:36px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background: rgba(255,255,255,.05);
+  color:var(--text);
+  padding:8px 10px;
+  outline:none;
+}
+
+.tbl td input:focus{ border-color: rgba(93,212,255,.65); }
+
+.total-row td{
+  background: rgba(52,211,153,.14);
+  font-weight:800;
+  border-bottom:none;
+}
+
+.total-label{ letter-spacing:.4px; }
+
+.pill{
+  display:inline-flex;
+  gap:8px;
+  align-items:center;
+  padding:8px 10px;
+  border-radius:999px;
+  background: rgba(93,212,255,.14);
+  border:1px solid rgba(93,212,255,.28);
+}
+
+/* =========================
+   10) Review mode cards
+========================= */
 
 #reviewView{
   margin-top:14px;
   display:flex;
   flex-direction:column;
   gap:12px;
-}
-
-.review-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-end;
-  gap:10px;
-  flex-wrap:wrap;
-}
-
-.review-title{
-  font-size:16px;
-  font-weight:900;
-  margin:0;
-}
-
-.review-sub{
-  color: var(--muted);
-  font-size:12px;
-  margin-top:4px;
-}
-
-.review-kpis{
-  display:grid;
-  grid-template-columns: repeat(3,1fr);
-  gap:10px;
-  margin-top:12px;
 }
 
 .review-card{
@@ -376,9 +330,32 @@ body{
   padding:14px;
 }
 
+.review-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.review-title{ font-size:16px; font-weight:900; margin:0; }
+.review-sub{ color: var(--muted); font-size:12px; margin-top:4px; }
+
+.review-kpis{
+  display:grid;
+  grid-template-columns: repeat(3,1fr);
+  gap:10px;
+  margin-top:12px;
+}
+
+@media (max-width:700px){
+  .review-kpis{ grid-template-columns: 1fr; }
+}
+
+/* Expandable period cards in review */
 .period-card{
   border:1px solid var(--line);
-  border-radius: 16px;
+  border-radius:16px;
   overflow:hidden;
   background: rgba(0,0,0,.12);
 }
@@ -396,21 +373,9 @@ body{
 
 .period-card summary::-webkit-details-marker{ display:none; }
 
-.period-meta{
-  display:flex;
-  flex-direction:column;
-  gap:4px;
-}
-
-.period-range{
-  font-weight:900;
-  font-size:14px;
-}
-
-.period-mini{
-  font-size:12px;
-  color: var(--muted);
-}
+.period-meta{ display:flex; flex-direction:column; gap:4px; }
+.period-range{ font-weight:900; font-size:14px; }
+.period-mini{ font-size:12px; color:var(--muted); }
 
 .period-sum{
   display:flex;
@@ -430,12 +395,9 @@ body{
   font-weight:800;
   font-size:12px;
 }
-
 .badge b{ font-weight:900; }
 
-.period-body{
-  padding:0 14px 14px 14px;
-}
+.period-body{ padding:0 14px 14px 14px; }
 
 .client-list{
   display:flex;
@@ -447,17 +409,14 @@ body{
 .client-item{
   border:1px solid var(--line);
   background: rgba(255,255,255,.04);
-  border-radius: 14px;
+  border-radius:14px;
   padding:10px 12px;
   display:flex;
   justify-content:space-between;
   gap:10px;
 }
 
-.client-name{
-  font-weight:900;
-  font-size:13px;
-}
+.client-name{ font-weight:900; font-size:13px; }
 
 .client-values{
   display:flex;
@@ -468,15 +427,164 @@ body{
   font-size:12px;
 }
 
-.client-values span{
+.client-values span{ color:var(--muted); }
+
+/* =========================
+   11) Modal (Confirm)
+========================= */
+
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background: rgba(0,0,0,.55);
+  display:grid;
+  place-items:center;
+  z-index:999;
+  padding:16px;
+}
+
+.modal{
+  width: min(420px, 100%);
+  border-radius:18px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+  padding:14px;
+}
+
+.modal-title{ font-weight:900; font-size:16px; margin-bottom:8px; }
+.modal-text{ color:var(--muted); font-size:13px; line-height:1.4; }
+
+.modal-actions{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+  margin-top:14px;
+}
+
+/* =========================
+   12) To-top button
+========================= */
+
+.to-top{
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 14px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+  background: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.92);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  backdrop-filter: blur(10px);
+}
+
+.to-top.show{
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* =========================
+   13) Optional FAB “+ Add Client”
+   (only if you have <button class="fab-add-client"> in HTML)
+========================= */
+
+.fab-add-client{
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  padding: 12px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  display: none; /* default off */
+}
+
+body.is-edit .fab-add-client{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* keyboard open -> push fab up */
+body.keyboard-open .fab-add-client{ bottom: 90px; }
+
+/* =========================
+   14) Small helpers
+========================= */
+
+.footer{ margin-top:16px; color:var(--muted); font-size:12px; text-align:center; }
+
+/* თუ გინდა hint საერთოდ არ გამოჩნდეს */
+.hint{ display:none !important; }
+
+/* =========================
+   Manual Controls Collapse (button)
+   - uses: body.controls-collapsed
+   - NO scroll auto-collapse
+========================= */
+
+.controls{
+  overflow: hidden;
+  max-height: 1200px;
+  opacity: 1;
+  transition: max-height .25s ease, opacity .2s ease;
+  will-change: max-height, opacity;
+}
+
+body.controls-collapsed .controls{
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* optional: tighten topbar when collapsed */
+body.controls-collapsed .topbar{
+  padding-bottom: 10px;
+}
+
+.review-search{margin-top:12px; display:flex; flex-direction:column; gap:10px;}
+.review-search-input{
+  height:40px;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  outline:none;
+}
+.review-search-input:focus{border-color: rgba(93,212,255,.65);}
+
+.review-search-results{
+  border:1px solid var(--line);
+  border-radius:14px;
+  overflow:hidden;
+  background: rgba(0,0,0,.12);
+}
+
+.review-search-item{
+  padding:10px 12px;
+  border-bottom:1px solid var(--line);
+}
+.review-search-item:last-child{border-bottom:none;}
+.review-search-name{font-weight:900; font-size:13px;}
+.review-search-meta{
+  margin-top:6px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
   color: var(--muted);
+  font-size:12px;
 }
-
-@media (max-width: 700px){
-  .review-kpis{ grid-template-columns: 1fr; }
-  .mode-toggle{ width:100%; justify-content:flex-start; margin-left:0; }
-}
-
-.hint { 
-  display: none !important; 
-}
+.review-search-empty{padding:10px 12px; color: var(--muted); font-size:12px;}
