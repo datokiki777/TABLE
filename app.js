@@ -1429,3 +1429,27 @@ fabAddClient?.addEventListener("click", () => {
 initControlsToggle();
 render();
 setMode("review");
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js').then(reg => {
+
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+
+          document.getElementById("updateBox").style.display = "block";
+
+          document.getElementById("updateBtn").onclick = () => {
+            window.location.reload();
+          };
+
+        }
+      });
+
+    });
+
+  });
+}
+
