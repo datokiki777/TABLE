@@ -1,4 +1,4 @@
-const CACHE = "client-totals-v1";
+const CACHE = "client-totals-v2";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -27,3 +27,4 @@ self.addEventListener("fetch", e => {
   );
 
 });
+
