@@ -454,8 +454,8 @@ function askConfirm(message, title = "Confirm") {
    7) Data Model
 ========================= */
 
-function emptyRow() {
-  return { id: uuid(), customer: "", city: "", gross: "", net: "" };
+    function emptyRow() {
+  return { id: uuid(), customer: "", city: "", gross: "", net: "", done:"none" };
 }
 
 function defaultGroupData() {
@@ -488,15 +488,16 @@ function normalizeGroupData(d) {
     from: p?.from || "",
     to: p?.to || "",
     rows:
-      Array.isArray(p?.rows) && p.rows.length
-        ? p.rows.map((r) => ({
-            id: r?.id || uuid(),
-            customer: r?.customer ?? "",
-            city: r?.city ?? "",
-            gross: r?.gross ?? "",
-            net: r?.net ?? "",
-          }))
-        : [emptyRow()],
+  Array.isArray(p?.rows) && p.rows.length
+    ? p.rows.map((r) => ({
+        id: r?.id || uuid(),
+        customer: r?.customer ?? "",
+        city: r?.city ?? "",
+        gross: r?.gross ?? "",
+        net: r?.net ?? "",
+        done: ["none", "done", "fail"].includes(r?.done) ? r.done : (r?.done === true ? "done" : "none"),
+      }))
+    : [emptyRow()],
   }));
 
   return out;
@@ -568,7 +569,7 @@ function setPeriodCollapsed(periodId, collapsed) {
   saveCollapsedPeriods(map);
 }
 
-function formatDateLocal(d){
+   function formatDateLocal(d){
   if(!d) return "—";
 
   const parts = d.split("-");
@@ -991,50 +992,77 @@ if (section) {
 
     if (rowsTbody) rowsTbody.innerHTML = "";
 
-    p.rows.forEach((r) => {
-      const rowNode = tplRow.content.cloneNode(true);
-      const tr = rowNode.querySelector("tr");
+   p.rows.forEach((r) => {
+  const rowNode = tplRow.content.cloneNode(true);
+  const tr = rowNode.querySelector("tr");
 
-      const custEl = rowNode.querySelector(".cust");
-      const cityEl = rowNode.querySelector(".city");
-      const grossEl = rowNode.querySelector(".gross");
-      const netEl = rowNode.querySelector(".net");
-      const removeRowBtn = rowNode.querySelector(".removeRow");
+  const custEl = rowNode.querySelector(".cust");
+  const cityEl = rowNode.querySelector(".city");
+  const grossEl = rowNode.querySelector(".gross");
+  const netEl = rowNode.querySelector(".net");
+  const doneBtn = rowNode.querySelector(".doneBtn");
+  const removeRowBtn = rowNode.querySelector(".removeRow");
 
-      if (custEl) custEl.value = r.customer ?? "";
-      if (cityEl) cityEl.value = r.city ?? "";
-      if (grossEl) grossEl.value = r.gross ?? "";
-      if (netEl) netEl.value = r.net ?? "";
+  if (custEl) custEl.value = r.customer ?? "";
+  if (cityEl) cityEl.value = r.city ?? "";
+  if (grossEl) grossEl.value = r.gross ?? "";
+  if (netEl) netEl.value = r.net ?? "";
 
-      custEl?.addEventListener("input", () => { r.customer = custEl.value; saveState(); });
-      cityEl?.addEventListener("input", () => { r.city = cityEl.value; saveState(); });
+  if (doneBtn) {
+    const state = ["none", "done", "fail"].includes(r.done) ? r.done : "none";
+    doneBtn.classList.remove("state-none", "state-done", "state-fail");
+    doneBtn.classList.add(`state-${state}`);
+  }
 
-      grossEl?.addEventListener("input", () => {
-        r.gross = grossEl.value;
-        recalcAndRenderTotals();
-        saveState();
-      });
+  custEl?.addEventListener("input", () => {
+    r.customer = custEl.value;
+    saveState();
+  });
 
-      netEl?.addEventListener("input", () => {
-        r.net = netEl.value;
-        recalcAndRenderTotals();
-        saveState();
-      });
+  cityEl?.addEventListener("input", () => {
+    r.city = cityEl.value;
+    saveState();
+  });
 
-      removeRowBtn?.addEventListener("click", async () => {
-        const ok = await askConfirm("Delete this client row?", "Delete row");
-        if (!ok) return;
+  grossEl?.addEventListener("input", () => {
+    r.gross = grossEl.value;
+    recalcAndRenderTotals();
+    saveState();
+  });
 
-        p.rows = p.rows.filter((x) => x.id !== r.id);
-        if (p.rows.length === 0) p.rows.push(emptyRow());
+  netEl?.addEventListener("input", () => {
+    r.net = netEl.value;
+    recalcAndRenderTotals();
+    saveState();
+  });
 
-        saveState();
-        render();
-        if (appState.uiMode === "review") renderReview();
-      });
+  doneBtn?.addEventListener("click", () => {
+    const current = ["none", "done", "fail"].includes(r.done) ? r.done : "none";
 
-      rowsTbody?.appendChild(tr);
-    });
+    if (current === "none") r.done = "done";
+    else if (current === "done") r.done = "fail";
+    else r.done = "none";
+
+    doneBtn.classList.remove("state-none", "state-done", "state-fail");
+    doneBtn.classList.add(`state-${r.done}`);
+
+    saveState();
+  });
+
+  removeRowBtn?.addEventListener("click", async () => {
+    const ok = await askConfirm("Delete this client row?", "Delete row");
+    if (!ok) return;
+
+    p.rows = p.rows.filter((x) => x.id !== r.id);
+    if (p.rows.length === 0) p.rows.push(emptyRow());
+
+    saveState();
+    render();
+    if (appState.uiMode === "review") renderReview();
+  });
+
+  rowsTbody?.appendChild(tr);
+});
 
     addRowBtn?.addEventListener("click", () => {
   p.rows.push(emptyRow());
@@ -1260,21 +1288,34 @@ function renderReview() {
     const to = p.to || "—";
 
     const clients = p.rows.map((r) => {
-      const name = r.customer?.trim() || "Client";
-      const city = r.city?.trim() || "—";
-      return `
-        <div class="client-item">
-          <div>
-            <div class="client-name">${escapeHtml(name)}</div>
-            <div class="review-sub" style="margin:2px 0 0 0;">City: <b>${escapeHtml(city)}</b></div>
-          </div>
-          <div class="client-values">
-            <span>Gross:</span> <b>${fmt(parseMoney(r.gross))}</b>
-            <span>Net:</span> <b>${fmt(parseMoney(r.net))}</b>
-          </div>
+  const name = r.customer?.trim() || "Client";
+  const city = r.city?.trim() || "—";
+
+  const state = ["none", "done", "fail"].includes(r.done) ? r.done : "none";
+
+  let statusHtml = "";
+  if (state === "done") {
+    statusHtml = `<span class="review-status review-status-done">Done</span>`;
+  } else if (state === "fail") {
+    statusHtml = `<span class="review-status review-status-fail">Fail</span>`;
+  }
+
+  return `
+    <div class="client-item">
+      <div>
+        <div class="client-name-row">
+          <div class="client-name">${escapeHtml(name)}</div>
+          ${statusHtml}
         </div>
-      `;
-    }).join("");
+        <div class="review-sub" style="margin:2px 0 0 0;">City: <b>${escapeHtml(city)}</b></div>
+      </div>
+      <div class="client-values">
+        <span>Gross:</span> <b>${fmt(parseMoney(r.gross))}</b>
+        <span>Net:</span> <b>${fmt(parseMoney(r.net))}</b>
+      </div>
+    </div>
+  `;
+}).join("");
 
     return `
       <details class="period-card">
@@ -1494,12 +1535,19 @@ function exportPdfAllGroups() {
       );
 
       p.rows.forEach((r) => {
-        const name = (r.customer || "Client").toString().trim() || "Client";
-        const city = (r.city || "—").toString().trim() || "—";
-        const rg = money(parseMoney(r.gross));
-        const rn = money(parseMoney(r.net));
-        textLine(`• ${name} [${city}] | Gross: ${rg} | Net: ${rn}`, 10, false);
-      });
+  const name = (r.customer || "Client").toString().trim() || "Client";
+  const city = (r.city || "—").toString().trim() || "—";
+  const rg = money(parseMoney(r.gross));
+  const rn = money(parseMoney(r.net));
+
+  const state = ["none", "done", "fail"].includes(r.done) ? r.done : "none";
+  const statusText =
+    state === "done" ? " | Status: Done"
+    : state === "fail" ? " | Status: Fail"
+    : "";
+
+  textLine(`• ${name} [${city}] | Gross: ${rg} | Net: ${rn}${statusText}`, 10, false);
+});
 
       hr();
     });
