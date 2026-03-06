@@ -568,9 +568,18 @@ function setPeriodCollapsed(periodId, collapsed) {
   saveCollapsedPeriods(map);
 }
 
+function formatDateLocal(d){
+  if(!d) return "—";
+
+  const parts = d.split("-");
+  if(parts.length !== 3) return d;
+
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
 function formatPeriodPreview(from, to) {
-  const left = from || "—";
-  const right = to || "—";
+  const left = formatDateLocal(from);
+  const right = formatDateLocal(to);
   return `${left} → ${right}`;
 }
 
