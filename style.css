@@ -40,29 +40,16 @@ body{
 
 .topbar{
   position: sticky;
-  top:0;
-  z-index:999;
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-  padding:14px;
-  border-bottom:1px solid var(--line);
+  top: 0;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
   background: rgba(11,18,32,.85);
   backdrop-filter: blur(10px);
 }
-
-.brand{ display:flex; align-items:center; gap:12px; }
-
-.logo{
-  width:42px;height:42px;border-radius:12px;
-  display:grid;place-items:center;
-  background: rgba(255,255,255,.10);
-  border: 1px solid var(--line);
-  font-weight:800;
-}
-
-.title{ font-size:16px; font-weight:800; }
-.subtitle{ font-size:12px; color:var(--muted); }
 
 /* =========================
    3) Controls layout
@@ -239,6 +226,7 @@ body{
   border: 1px solid rgba(93,212,255,.28);
 }
 
+
 /* =========================
    9) Period cards + table
 ========================= */
@@ -294,9 +282,10 @@ body{
 .tbl td input:focus{ border-color: rgba(93,212,255,.65); }
 
 .total-row td{
-  background: rgba(52,211,153,.14);
-  font-weight:800;
+  background: rgba(52,211,153,.18);
+  font-weight:900;
   border-bottom:none;
+  letter-spacing:.3px;
 }
 
 .total-label{ letter-spacing:.4px; }
@@ -470,7 +459,7 @@ body{
 .to-top{
   position: fixed;
   right: 16px;
-  bottom: 72px;
+  bottom: 140px;
   width: 46px;
   height: 46px;
   border: 0;
@@ -487,6 +476,7 @@ body{
   color: rgba(255,255,255,0.92);
   box-shadow: 0 10px 30px rgba(0,0,0,0.35);
   backdrop-filter: blur(10px);
+  z-index: 5000;
 }
 
 .to-top.show{
@@ -497,18 +487,17 @@ body{
 
 /* =========================
    13) Optional FAB “+ Add Client”
-   (only if you have <button class="fab-add-client"> in HTML)
 ========================= */
 
 .fab-add-client{
   position: fixed;
   right: 16px;
-  bottom: 16px;
-  z-index: 1000;
+  bottom: 72px;
+  z-index: 5000;
   padding: 12px 14px;
   border-radius: 999px;
   font-weight: 700;
-  display: none; /* default off */
+  display: none;
 }
 
 body.is-edit .fab-add-client{
@@ -517,22 +506,19 @@ body.is-edit .fab-add-client{
   gap: 8px;
 }
 
-/* keyboard open -> push fab up */
 body.keyboard-open .fab-add-client{ bottom: 90px; }
 
 /* =========================
    14) Small helpers
 ========================= */
 
-.footer{ margin-top:16px; color:var(--muted); font-size:12px; text-align:center; }
-
-/* თუ გინდა hint საერთოდ არ გამოჩნდეს */
+.footer{
+  display:none;
+}
 .hint{ display:none !important; }
 
 /* =========================
    Manual Controls Collapse (button)
-   - uses: body.controls-collapsed
-   - NO scroll auto-collapse
 ========================= */
 
 .controls{
@@ -549,7 +535,6 @@ body.controls-collapsed .controls{
   pointer-events: none;
 }
 
-/* optional: tighten topbar when collapsed */
 body.controls-collapsed .topbar{
   padding-bottom: 10px;
 }
@@ -588,3 +573,584 @@ body.controls-collapsed .topbar{
   font-size:12px;
 }
 .review-search-empty{padding:10px 12px; color: var(--muted); font-size:12px;}
+
+/* =========================================================
+   15) Theme Switch + Light Theme (SOFT, not flashy)
+   - uses: body[data-theme="light"]
+========================================================= */
+
+/* Edit/Review row + switch right side */
+
+.mode-toggle{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  width:100%;
+}
+
+.theme-switch{
+  margin-left:auto;
+  position:relative;
+  width:54px;
+  height:28px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  user-select:none;
+}
+
+.theme-switch input{ display:none; }
+
+.theme-switch .slider{
+  position:absolute;
+  inset:0;
+  border-radius:999px;
+  background:rgba(255,255,255,0.10);
+  border:1px solid rgba(255,255,255,0.18);
+  backdrop-filter: blur(10px);
+  transition:background .2s ease, border-color .2s ease;
+  z-index:1;
+}
+
+.theme-switch .slider::before{
+  content:"";
+  position:absolute;
+  top:3px;
+  left:3px;
+  width:22px;
+  height:22px;
+  border-radius:999px;
+  background:#ffffff;
+  transition:transform .2s ease;
+}
+
+.theme-switch input:checked + .slider::before{
+  transform:translateX(26px);
+}
+
+.theme-switch .icon{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:14px;
+  opacity:.9;
+  pointer-events:none;
+  z-index:2;
+}
+
+.theme-switch .moon{ left:7px; }
+.theme-switch .sun{ right:7px; }
+
+/* ========= SOFT LIGHT THEME ========= */
+/* Instead of pure white, we use warm/soft gray */
+
+body[data-theme="light"]{
+  color:#0f172a;
+  background:
+    radial-gradient(1100px 800px at 10% -10%, rgba(93,212,255,.18), transparent 58%),
+    radial-gradient(1000px 750px at 90% 0%, rgba(52,211,153,.13), transparent 62%),
+    #c6d0dc;
+}
+
+/* Topbar (soft light) */
+body[data-theme="light"] .topbar{
+  background: rgba(238,242,247,.92);
+  border-bottom: 1px solid rgba(15,23,42,.10);
+}
+
+/* Text colors */
+body[data-theme="light"] .subtitle,
+body[data-theme="light"] .kpi-label,
+body[data-theme="light"] .field span,
+body[data-theme="light"] .period-mini,
+body[data-theme="light"] .review-sub,
+body[data-theme="light"] .client-values span,
+body[data-theme="light"] .footer{
+  color:#475569 !important;
+}
+
+/* Cards become off-white */
+body[data-theme="light"] .card,
+body[data-theme="light"] .review-card,
+body[data-theme="light"] .period-card,
+body[data-theme="light"] .kpi{
+  background: linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,255,255,.55));
+  border-color: rgba(15,23,42,.14);
+  box-shadow: 
+    0 10px 26px rgba(15,23,42,.10),
+    inset 0 1px 0 rgba(255,255,255,.55);
+  color:#0f172a;
+}
+
+/* Inputs */
+body[data-theme="light"] .field input,
+body[data-theme="light"] .select,
+body[data-theme="light"] .tbl td input,
+body[data-theme="light"] .review-search-input{
+  background: rgba(255,255,255,.62);
+  border-color: rgba(15,23,42,.18);
+  color:#0f172a;
+}
+
+/* Table header */
+body[data-theme="light"] .tbl th{
+  background: rgba(15,23,42,.06);
+  color:#475569;
+}
+
+/* Buttons in light theme (still glassy) */
+body[data-theme="light"] .btn{
+  background: rgba(15,23,42,.07);
+  border-color: rgba(15,23,42,.18);
+  color:#0f172a;
+}
+body[data-theme="light"] .btn.primary{
+  background: rgba(93,212,255,.22);
+  border-color: rgba(93,212,255,.40);
+}
+body[data-theme="light"] .btn.danger{
+  background: rgba(255,93,93,.14);
+  border-color: rgba(255,93,93,.30);
+}
+
+/* Toggle buttons */
+body[data-theme="light"] .toggle{
+  border-color: rgba(15,23,42,.14);
+  background: rgba(15,23,42,.04);
+}
+body[data-theme="light"] .toggle-btn{
+  color:#475569;
+}
+body[data-theme="light"] .toggle-btn.active{
+  color:#0f172a;
+  background: rgba(93,212,255,.22);
+  border: 1px solid rgba(93,212,255,.30);
+}
+
+/* Total row (not neon) */
+body[data-theme="light"] .total-row td{
+  background: rgba(52,211,153,.22);
+  font-weight:900;
+  letter-spacing:.3px;
+}
+
+/* Theme switch track on light */
+body[data-theme="light"] .theme-switch .slider{
+  background: rgba(15,23,42,.06);
+  border-color: rgba(15,23,42,.14);
+}
+
+
+/* ===== Light theme only: confirm modal clearer ===== */
+body[data-theme="light"] .modal{
+  border: 1px solid rgba(15,23,42,.16);
+  background: linear-gradient(180deg, rgba(214,223,234,.98), rgba(198,209,222,.98));
+  box-shadow: 0 18px 40px rgba(15,23,42,.22);
+}
+
+body[data-theme="light"] .modal-title{
+  color:#0f172a;
+}
+
+body[data-theme="light"] .modal-text{
+  color:#334155;
+}
+
+body[data-theme="light"] .modal .btn{
+  background: rgba(15,23,42,.08);
+  border: 1px solid rgba(15,23,42,.16);
+  color:#0f172a;
+  font-weight:700;
+}
+
+body[data-theme="light"] .modal .btn.danger{
+  background: rgba(255,93,93,.18);
+  border-color: rgba(255,93,93,.34);
+  color:#7f1d1d;
+}
+
+/* TOTAL change animation */
+
+.total-flash{
+  animation: totalFlash .28s ease;
+}
+
+@keyframes totalFlash{
+
+  0%{
+    transform: scale(1);
+    filter: brightness(1);
+  }
+
+  50%{
+    transform: scale(1.06);
+    filter: brightness(1.35);
+  }
+
+  100%{
+    transform: scale(1);
+    filter: brightness(1);
+  }
+
+}
+
+ .mode-switch{
+  display:flex;
+  align-items:center;
+  gap:2px;
+  padding:2px;
+  border:1px solid var(--line);
+  background: rgba(255,255,255,.04);
+  border-radius:999px;
+}
+
+#controlsToggle{
+  margin:0;
+  white-space:nowrap;
+  flex-shrink:0;
+  min-width:154px;
+  text-align:center;
+  background: rgba(168,85,247,.16);
+  border-color: rgba(168,85,247,.35);
+  color:#e9d5ff;
+}
+
+.theme-switch{
+  margin-left:0;
+  flex-shrink:0;
+}
+
+.mode-switch .btn{
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  border-radius:999px;
+  padding:6px 9px;
+  min-width:56px;
+  font-weight:800;
+  box-shadow:none;
+  font-size:12px;
+}
+
+.mode-switch .btn.active{
+  background: rgba(93,212,255,.28);
+  color:#ffffff;
+  border:1px solid rgba(93,212,255,.55);
+  box-shadow: 0 0 0 2px rgba(93,212,255,.12) inset;
+}
+
+/* light theme */
+body[data-theme="light"] .mode-switch{
+  background: rgba(15,23,42,.04);
+  border-color: rgba(15,23,42,.12);
+}
+
+body[data-theme="light"] .mode-switch .btn{
+  color:#475569;
+}
+
+body[data-theme="light"] .mode-switch .btn.active{
+  background: rgba(93,212,255,.28);
+  color:#0f172a;
+  border:1px solid rgba(93,212,255,.50);
+  box-shadow: 0 0 0 2px rgba(93,212,255,.12) inset;
+}
+
+body[data-theme="light"] #controlsToggle{
+  color:#6b21a8;
+}
+
+body[data-theme="light"] .to-top{
+  background: rgba(15,23,42,.18);
+  color:#0f172a;
+  box-shadow: 0 10px 30px rgba(15,23,42,.25);
+}
+
+body[data-theme="light"] .pill{
+  background: rgba(16,185,129,.22);
+  border: 1px solid rgba(16,185,129,.38);
+  color:#064e3b;
+  font-weight:800;
+}
+
+body[data-theme="light"] .client-values{
+  color:#0f172a;
+}
+
+body[data-theme="light"] .client-values span{
+  color:#475569;
+  font-weight:600;
+}
+
+body[data-theme="light"] .client-item{
+  border:1px solid rgba(15,23,42,.18);
+  background: rgba(255,255,255,.55);
+}
+
+/* Light theme – stronger borders */
+
+body[data-theme="light"] .review-card,
+body[data-theme="light"] .period-card{
+  border:1px solid rgba(15,23,42,.22);
+}
+
+body[data-theme="light"] .client-item{
+  border:1px solid rgba(15,23,42,.20);
+  background: rgba(255,255,255,.72);
+}
+
+body[data-theme="light"] .badge{
+  border:1px solid rgba(15,23,42,.18);
+  background: rgba(255,255,255,.60);
+}
+
+/* =========================
+   Grand Total collapse + Monthly Statistics
+========================= */
+
+.summary-title-btn{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  border:1px solid var(--line);
+  background: rgba(255,255,255,.04);
+  color:var(--text);
+  border-radius:14px;
+  padding:10px 14px;
+  font-size:16px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.summary-collapse-icon{
+  font-size:14px;
+  opacity:.9;
+  transition: transform .2s ease;
+}
+
+.summary-body{
+  margin-top:12px;
+  overflow:hidden;
+  max-height:1200px;
+  opacity:1;
+  transition:max-height .28s ease, opacity .2s ease, margin-top .2s ease;
+}
+
+.summary-collapsed .summary-body{
+  max-height:0;
+  opacity:0;
+  margin-top:0;
+  pointer-events:none;
+}
+
+.summary-collapsed .summary-collapse-icon{
+  transform: rotate(-90deg);
+}
+
+.monthly-stats{
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid var(--line);
+}
+
+.monthly-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
+
+.monthly-title{
+  font-size:15px;
+  font-weight:800;
+  color:var(--text);
+}
+
+.month-nav{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.month-label{
+  min-width:120px;
+  text-align:center;
+  font-weight:800;
+  color:var(--text);
+}
+
+.monthly-grid{
+  display:grid;
+  grid-template-columns: repeat(3,1fr);
+  gap:10px;
+}
+
+@media (max-width:700px){
+  .summary-title-btn{
+    font-size:15px;
+    padding:9px 12px;
+  }
+
+  .month-nav{
+    width:100%;
+    justify-content:space-between;
+  }
+
+  .month-label{
+    flex:1;
+  }
+
+  .monthly-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+body[data-theme="light"] .summary-title-btn{
+  background: rgba(255,255,255,.58);
+  border-color: rgba(15,23,42,.16);
+  color:#0f172a;
+}
+
+body[data-theme="light"] .monthly-stats{
+  border-top:1px solid rgba(15,23,42,.12);
+}
+
+body[data-theme="light"] .monthly-title,
+body[data-theme="light"] .month-label{
+  color:#0f172a;
+}
+
+/* =========================
+   Period collapse
+========================= */
+
+.period-top{
+  margin-bottom:12px;
+}
+
+.period-collapse-btn{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  border:1px solid var(--line);
+  background: rgba(255,255,255,.04);
+  color:var(--text);
+  border-radius:14px;
+  padding:12px 14px;
+  cursor:pointer;
+  text-align:left;
+}
+
+.period-collapse-title{
+  font-size:16px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.period-collapse-meta{
+  flex:1;
+  min-width:0;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.period-range-preview{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.period-collapse-icon{
+  font-size:14px;
+  opacity:.9;
+  transition:transform .22s ease;
+}
+
+.period-body-wrap{
+  overflow:hidden;
+  max-height:2500px;
+  opacity:1;
+  transition:max-height .28s ease, opacity .2s ease, margin-top .2s ease;
+}
+
+.period.is-collapsed .period-body-wrap{
+  max-height:0;
+  opacity:0;
+  margin-top:0;
+  pointer-events:none;
+}
+
+.period.is-collapsed .period-collapse-icon{
+  transform:rotate(-90deg);
+}
+
+.period-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:flex-start;
+}
+
+/* Light theme */
+body[data-theme="light"] .period-collapse-btn{
+  background: rgba(255,255,255,.58);
+  border-color: rgba(15,23,42,.16);
+  color:#0f172a;
+}
+
+body[data-theme="light"] .period-collapse-meta{
+  color:#475569;
+}
+
+#editView[hidden],
+#reviewView[hidden]{
+  display:none !important;
+}
+
+/* =========================
+   Period group name
+========================= */
+
+.period-group-preview{
+  display:block;
+  font-size:11px;
+  font-weight:700;
+  color:var(--accent);
+  margin-bottom:2px;
+  opacity:.95;
+}
+
+.period-group-box{
+  display:inline-flex;
+  align-items:center;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background: rgba(255,255,255,.05);
+  color:var(--accent);
+  font-size:12px;
+  font-weight:700;
+  margin:8px 0 2px 0;
+  width:fit-content;
+}
+
+body[data-theme="light"] .period-group-preview{
+  color:#6d28d9;
+}
+
+body[data-theme="light"] .period-group-box{
+  background: rgba(109,40,217,.08);
+  border-color: rgba(109,40,217,.18);
+  color:#6d28d9;
+}
+
+/* hide floating add client when all periods are collapsed */
+body.all-periods-collapsed .fab-add-client{
+  display:none !important;
+}
