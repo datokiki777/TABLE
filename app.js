@@ -1,25 +1,36 @@
 /* =========================================================
    Client Totals (Groups Edition) — GitHub Pages friendly
    ✅ Groups
-   ✅ Edit / Review modes (Review default on first load)
+   ✅ Edit / Review modes (saved)
    ✅ Grand totals: Active group / All groups
    ✅ Custom confirm modal fallback to window.confirm
    ✅ Export/Import:
-       - Active group JSON
+       - Active group JSON (replace)
        - All groups JSON (MERGE or REPLACE)
    ✅ City field per client row
    ✅ PDF Export (ALL groups) via jsPDF
    ✅ Scroll-to-top
    ✅ Controls collapse toggle (mobile friendly)
    ✅ Floating "+ Client" button in Edit
+   ✅ Theme toggle (Dark/Light) + saved in localStorage
 ========================================================= */
 
 /* =========================
-   1) Storage + DOM
+   1) Storage Keys
 ========================= */
 
 const STORAGE_KEY = "client_totals_groups_v1";
 const CONTROLS_KEY = "ct_controls_collapsed";
+const THEME_KEY = "ct_theme_v1";
+
+const SUMMARY_COLLAPSED_KEY = "ct_summary_collapsed";
+const MONTH_CURSOR_KEY = "ct_month_cursor";
+
+const PERIODS_COLLAPSED_KEY = "ct_periods_collapsed";
+
+/* =========================
+   2) DOM
+========================= */
 
 // Main UI
 const modeEditBtn = document.getElementById("modeEditBtn");
@@ -40,6 +51,16 @@ const grandGrossEl = document.getElementById("grandGross");
 const grandNetEl = document.getElementById("grandNet");
 const grandMyEl = document.getElementById("grandMy");
 
+// Summary + Monthly stats
+const summarySection = document.querySelector(".summary.card");
+const summaryCollapseBtn = document.getElementById("summaryCollapseBtn");
+const monthPrevBtn = document.getElementById("monthPrevBtn");
+const monthNextBtn = document.getElementById("monthNextBtn");
+const monthLabel = document.getElementById("monthLabel");
+const monthGrossEl = document.getElementById("monthGross");
+const monthNetEl = document.getElementById("monthNet");
+const monthMyEl = document.getElementById("monthMy");
+
 // Groups UI
 const groupSelect = document.getElementById("groupSelect");
 const addGroupBtn = document.getElementById("addGroupBtn");
@@ -53,8 +74,6 @@ const totalsAllBtn = document.getElementById("totalsAllBtn");
 // Export/Import ALL groups
 const pdfAllBtn = document.getElementById("pdfAllBtn");
 const exportAllBtn = document.getElementById("exportAllBtn");
-const importLabel = document.getElementById("importLabel");
-const importAllLabel = document.getElementById("importAllLabel");
 const importAllInput = document.getElementById("importAllInput");
 
 // Scroll-to-top
@@ -73,14 +92,20 @@ const confirmTextEl = document.getElementById("confirmText");
 const confirmNoBtn = document.getElementById("confirmNo");
 const confirmYesBtn = document.getElementById("confirmYes");
 
+// Theme controls (flexible)
+const themeToggle = document.getElementById("themeToggle");     // optional one button
+const themeDarkBtn = document.getElementById("themeDarkBtn");   // optional
+const themeLightBtn = document.getElementById("themeLightBtn"); // optional
+const themeSwitch = document.getElementById("themeSwitch");     // optional checkbox
+
 /* =========================
-   2) App State
+   3) App State
 ========================= */
 
 let appState = loadState();
 
 /* =========================
-   3) Utilities
+   4) Utilities
 ========================= */
 
 function uuid() {
@@ -148,110 +173,245 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
-function buildReviewSearchIndex() {
-  const rows = [];
+function getSavedSummaryCollapsed() {
+  try {
+    return localStorage.getItem(SUMMARY_COLLAPSED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
-  (appState.groups || []).forEach((gr) => {
-    const gName = gr?.name ?? "Group";
-    const periods = gr?.data?.periods || [];
+function setSummaryCollapsed(v) {
+  if (summarySection) {
+    summarySection.classList.toggle("summary-collapsed", !!v);
+  }
+  try {
+    localStorage.setItem(SUMMARY_COLLAPSED_KEY, v ? "1" : "0");
+  } catch {}
+}
 
-    periods.forEach((p) => {
-      const from = p?.from || "—";
-      const to = p?.to || "—";
+function getSavedMonthCursor() {
+  try {
+    return localStorage.getItem(MONTH_CURSOR_KEY) || "";
+  } catch {
+    return "";
+  }
+}
 
-      (p?.rows || []).forEach((r) => {
-        const customer = (r?.customer ?? "").toString().trim();
-        const city = (r?.city ?? "").toString().trim();
+function setSavedMonthCursor(v) {
+  try {
+    localStorage.setItem(MONTH_CURSOR_KEY, v || "");
+  } catch {}
+}
 
-        // ცარიელი რიგები არ ჩავაგდოთ ინდექსში
-        if (!customer && !city) return;
+function startOfDay(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
 
-        rows.push({
-          group: gName,
-          from,
-          to,
-          customer,
-          city,
-          gross: fmt(parseMoney(r?.gross)),
-          net: fmt(parseMoney(r?.net)),
-        });
-      });
+function addDays(d, n) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+
+function daysBetweenInclusive(a, b) {
+  const ms = startOfDay(b) - startOfDay(a);
+  return Math.floor(ms / 86400000) + 1;
+}
+
+function parseDateOnly(dateStr) {
+  if (!dateStr) return null;
+  const parts = String(dateStr).split("-");
+  if (parts.length !== 3) return null;
+
+  const y = Number(parts[0]);
+  const m = Number(parts[1]) - 1;
+  const d = Number(parts[2]);
+
+  const out = new Date(y, m, d);
+  if (Number.isNaN(out.getTime())) return null;
+  return out;
+}
+
+function monthKeyFromDateObj(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
+}
+
+function formatMonthKey(monthKey) {
+  if (!monthKey) return "No data";
+  const [y, m] = monthKey.split("-");
+  const d = new Date(Number(y), Number(m) - 1, 1);
+  return d.toLocaleString("en-US", { month: "long", year: "numeric" });
+}
+
+function getMonthStart(monthKey) {
+  const [y, m] = monthKey.split("-");
+  return new Date(Number(y), Number(m) - 1, 1);
+}
+
+function getMonthEnd(monthKey) {
+  const [y, m] = monthKey.split("-");
+  return new Date(Number(y), Number(m), 0);
+}
+
+function getAllMonthKeysForMode(mode = appState.grandMode) {
+  const groups = mode === "all" ? appState.groups : [activeGroup()];
+  const keys = new Set();
+
+  groups.forEach((gr) => {
+    (gr?.data?.periods || []).forEach((p) => {
+      const from = parseDateOnly(p?.from);
+      const to = parseDateOnly(p?.to);
+      if (!from || !to) return;
+
+      let cur = new Date(from.getFullYear(), from.getMonth(), 1);
+      const last = new Date(to.getFullYear(), to.getMonth(), 1);
+
+      while (cur <= last) {
+        keys.add(monthKeyFromDateObj(cur));
+        cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+      }
     });
   });
 
-  return rows;
+  return [...keys].sort();
 }
 
-function initReviewSearch() {
-  const searchEl = document.getElementById("reviewSearch");
-  const resultsEl = document.getElementById("reviewSearchResults");
-  const wrapEl = searchEl?.closest(".review-search") || null;
+function getCurrentMonthKey(mode = appState.grandMode) {
+  const keys = getAllMonthKeysForMode(mode);
+  if (!keys.length) return "";
 
-  if (!searchEl || !resultsEl) return;
+  const saved = getSavedMonthCursor();
+  if (saved && keys.includes(saved)) return saved;
 
-  // თავიდან ვაკეთებთ ინდექსს ყოველ renderReview()-ზე (რომ ახლანდელი მონაცემები ეჭიროს)
-  const index = buildReviewSearchIndex();
+  return keys[keys.length - 1];
+}
 
-  const hide = () => {
-    resultsEl.style.display = "none";
-    resultsEl.innerHTML = "";
-  };
+function getOverlapDaysInclusive(periodFrom, periodTo, monthStart, monthEnd) {
+  const start = periodFrom > monthStart ? periodFrom : monthStart;
+  const end = periodTo < monthEnd ? periodTo : monthEnd;
+  if (start > end) return 0;
+  return daysBetweenInclusive(start, end);
+}
 
-  const clear = () => {
-    searchEl.value = "";
-    hide();
-  };
+function calcMonthlyTotals(monthKey, mode = appState.grandMode) {
+  if (!monthKey) return { gross: 0, net: 0, my: 0 };
 
-  const renderResults = (list) => {
-    if (!list.length) {
-      resultsEl.style.display = "block";
-      resultsEl.innerHTML = `<div class="review-search-empty">No results</div>`;
-      return;
-    }
+  const monthStart = getMonthStart(monthKey);
+  const monthEnd = getMonthEnd(monthKey);
+  const groups = mode === "all" ? appState.groups : [activeGroup()];
+  const totals = { gross: 0, net: 0, my: 0 };
 
-    resultsEl.style.display = "block";
-    resultsEl.innerHTML = list.slice(0, 40).map(x => `
-      <div class="review-search-item">
-        <div class="review-search-name">${escapeHtml(x.customer || "Client")}</div>
-        <div class="review-search-meta">
-          <span><b>Group:</b> ${escapeHtml(x.group)}</span>
-          <span><b>Period:</b> ${escapeHtml(x.from)} → ${escapeHtml(x.to)}</span>
-          <span><b>City:</b> ${escapeHtml(x.city || "—")}</span>
-          <span><b>Gross:</b> ${escapeHtml(x.gross)}</span>
-          <span><b>Net:</b> ${escapeHtml(x.net)}</span>
-        </div>
-      </div>
-    `).join("");
-  };
+  groups.forEach((gr) => {
+    const st = gr.data;
 
-  // ძებნა (name ან city)
-  searchEl.oninput = () => {
-    const q = searchEl.value.trim().toLowerCase();
-    if (!q) { hide(); return; }
+    (st.periods || []).forEach((p) => {
+      const from = parseDateOnly(p.from);
+      const to = parseDateOnly(p.to);
+      if (!from || !to || to < from) return;
 
-    const filtered = index.filter(x =>
-      (x.customer || "").toLowerCase().includes(q) ||
-      (x.city || "").toLowerCase().includes(q)
-    );
+      const totalDays = daysBetweenInclusive(from, to);
+      const overlapDays = getOverlapDaysInclusive(from, to, monthStart, monthEnd);
+      if (overlapDays <= 0 || totalDays <= 0) return;
 
-    renderResults(filtered);
-  };
+      const ratio = overlapDays / totalDays;
+      const t = calcPeriodTotals(p, st.defaultRatePercent);
 
-  // ESC -> clear
-  searchEl.onkeydown = (e) => {
-    if (e.key === "Escape") clear();
-  };
+      totals.gross += t.gross * ratio;
+      totals.net += t.net * ratio;
+      totals.my += t.my * ratio;
+    });
+  });
 
-  // გარეთ დაჭერა -> clear (როგორც გინდა შენ)
-  document.addEventListener("pointerdown", (e) => {
-    if (!wrapEl) return;
-    if (wrapEl.contains(e.target)) return; // search-ზე თუ დააჭირა, არ გაწმინდოს
-    clear();
-  }, { passive: true });
+  return totals;
+}
+
+function renderMonthlyStats() {
+  if (!monthLabel || !monthGrossEl || !monthNetEl || !monthMyEl) return;
+
+  const keys = getAllMonthKeysForMode(appState.grandMode);
+  const currentKey = getCurrentMonthKey(appState.grandMode);
+  const totals = calcMonthlyTotals(currentKey, appState.grandMode);
+
+  monthLabel.textContent = formatMonthKey(currentKey);
+  monthGrossEl.textContent = fmt(totals.gross);
+  monthNetEl.textContent = fmt(totals.net);
+  monthMyEl.textContent = fmt(totals.my);
+
+  if (monthPrevBtn) monthPrevBtn.disabled = !currentKey || currentKey === keys[0];
+  if (monthNextBtn) monthNextBtn.disabled = !currentKey || currentKey === keys[keys.length - 1];
+}
+
+function shiftMonthCursor(dir) {
+  const keys = getAllMonthKeysForMode(appState.grandMode);
+  if (!keys.length) return;
+
+  const currentKey = getCurrentMonthKey(appState.grandMode);
+  let idx = keys.indexOf(currentKey);
+  if (idx === -1) idx = keys.length - 1;
+
+  idx += dir;
+  if (idx < 0) idx = 0;
+  if (idx > keys.length - 1) idx = keys.length - 1;
+
+  setSavedMonthCursor(keys[idx]);
+  renderMonthlyStats();
+}
+
+function initSummaryPanel() {
+  setSummaryCollapsed(getSavedSummaryCollapsed());
+
+  summaryCollapseBtn?.addEventListener("click", () => {
+    const collapsed = summarySection?.classList.contains("summary-collapsed");
+    setSummaryCollapsed(!collapsed);
+  });
+
+  monthPrevBtn?.addEventListener("click", () => shiftMonthCursor(-1));
+  monthNextBtn?.addEventListener("click", () => shiftMonthCursor(1));
 }
 
 /* =========================
-   4) Confirm Modal (Yes/No)
+   5) Theme (Dark/Light)
+========================= */
+
+function getSavedTheme() {
+  try { return localStorage.getItem(THEME_KEY); } catch { return null; }
+}
+
+function setTheme(theme) {
+  const t = theme === "light" ? "light" : "dark";
+  document.body.dataset.theme = t;
+
+  try { localStorage.setItem(THEME_KEY, t); } catch {}
+
+  // sync checkbox (if exists)
+  if (themeSwitch && "checked" in themeSwitch) {
+    themeSwitch.checked = t === "light";
+  }
+
+  // sync optional buttons
+  themeDarkBtn?.classList.toggle("active", t === "dark");
+  themeLightBtn?.classList.toggle("active", t === "light");
+}
+
+function toggleTheme() {
+  const cur = document.body.dataset.theme === "light" ? "light" : "dark";
+  setTheme(cur === "light" ? "dark" : "light");
+}
+
+function initTheme() {
+  setTheme(getSavedTheme() || "dark");
+
+  themeToggle?.addEventListener("click", toggleTheme);
+  themeDarkBtn?.addEventListener("click", () => setTheme("dark"));
+  themeLightBtn?.addEventListener("click", () => setTheme("light"));
+  themeSwitch?.addEventListener("change", () => setTheme(themeSwitch.checked ? "light" : "dark"));
+}
+
+/* =========================
+   6) Confirm Modal (Yes/No)
 ========================= */
 
 function hasCustomConfirm() {
@@ -277,36 +437,21 @@ function askConfirm(message, title = "Confirm") {
       document.onkeydown = null;
     };
 
-    confirmNoBtn.onclick = () => {
-      cleanup();
-      resolve(false);
-    };
+    confirmNoBtn.onclick = () => { cleanup(); resolve(false); };
+    confirmYesBtn.onclick = () => { cleanup(); resolve(true); };
 
-    confirmYesBtn.onclick = () => {
-      cleanup();
-      resolve(true);
-    };
-
-    // Click outside -> No
     confirmBackdrop.onclick = (e) => {
-      if (e.target === confirmBackdrop) {
-        cleanup();
-        resolve(false);
-      }
+      if (e.target === confirmBackdrop) { cleanup(); resolve(false); }
     };
 
-    // ESC -> No
     document.onkeydown = (e) => {
-      if (e.key === "Escape") {
-        cleanup();
-        resolve(false);
-      }
+      if (e.key === "Escape") { cleanup(); resolve(false); }
     };
   });
 }
 
 /* =========================
-   5) Data Model
+   7) Data Model
 ========================= */
 
 function emptyRow() {
@@ -316,14 +461,7 @@ function emptyRow() {
 function defaultGroupData() {
   return {
     defaultRatePercent: 13.5,
-    periods: [
-      {
-        id: uuid(),
-        from: "",
-        to: "",
-        rows: [emptyRow()],
-      },
-    ],
+    periods: [{ id: uuid(), from: "", to: "", rows: [emptyRow()] }],
   };
 }
 
@@ -388,7 +526,7 @@ function normalizeAppState(s) {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); } catch {}
 }
 
 function loadState() {
@@ -405,37 +543,142 @@ function activeGroup() {
   return appState.groups.find((g) => g.id === appState.activeGroupId) || appState.groups[0];
 }
 
-/* =========================
-   6) UI Helpers
-========================= */
-
-function syncBodyModeClass() {
-  document.body.classList.toggle("is-edit", appState.uiMode === "edit");
+function getSavedCollapsedPeriods() {
+  try {
+    return JSON.parse(localStorage.getItem(PERIODS_COLLAPSED_KEY) || "{}");
+  } catch {
+    return {};
+  }
 }
+
+function saveCollapsedPeriods(map) {
+  try {
+    localStorage.setItem(PERIODS_COLLAPSED_KEY, JSON.stringify(map || {}));
+  } catch {}
+}
+
+function isPeriodCollapsed(periodId) {
+  const map = getSavedCollapsedPeriods();
+  return !!map[periodId];
+}
+
+function setPeriodCollapsed(periodId, collapsed) {
+  const map = getSavedCollapsedPeriods();
+  map[periodId] = !!collapsed;
+  saveCollapsedPeriods(map);
+}
+
+function formatPeriodPreview(from, to) {
+  const left = from || "—";
+  const right = to || "—";
+  return `${left} → ${right}`;
+}
+
+ function updateFloatingAddClientVisibility() {
+  const allPeriods = elPeriods?.querySelectorAll?.(".period") ?? [];
+  if (!allPeriods.length) {
+    document.body.classList.remove("all-periods-collapsed");
+    return;
+  }
+
+  const hasOpenPeriod = [...allPeriods].some((sec) => !sec.classList.contains("is-collapsed"));
+  document.body.classList.toggle("all-periods-collapsed", !hasOpenPeriod);
+}
+
+function periodsStrictlyOverlap(aFrom, aTo, bFrom, bTo) {
+  if (!aFrom || !aTo || !bFrom || !bTo) return false;
+
+  const aStart = parseDateOnly(aFrom);
+  const aEnd = parseDateOnly(aTo);
+  const bStart = parseDateOnly(bFrom);
+  const bEnd = parseDateOnly(bTo);
+
+  if (!aStart || !aEnd || !bStart || !bEnd) return false;
+  if (aEnd < aStart || bEnd < bStart) return false;
+
+  // strict overlap only
+  // touching edges is allowed:
+  // aEnd === bStart  -> OK
+  // aStart === bEnd  -> OK
+  return aStart < bEnd && aEnd > bStart;
+}
+
+function hasOverlappingPeriodInActiveGroup(periodId, from, to) {
+  const g = activeGroup();
+  const periods = g?.data?.periods || [];
+
+  return periods.some((p) => {
+    if (!p || p.id === periodId) return false;
+    return periodsStrictlyOverlap(from, to, p.from, p.to);
+  });
+}
+
+function isPeriodReversed(from, to) {
+  if (!from || !to) return false;
+
+  const fromDate = parseDateOnly(from);
+  const toDate = parseDateOnly(to);
+
+  if (!fromDate || !toDate) return false;
+  return fromDate > toDate;
+}
+
+async function validatePeriodWarnings(periodId, from, to, revertFn) {
+  if (from && to && isPeriodReversed(from, to)) {
+    const ok = await askConfirm(
+      "From date is later than To date. Is that correct?",
+      "Invalid period"
+    );
+
+    if (!ok) {
+      revertFn();
+      return false;
+    }
+  }
+
+  if (from && to && hasOverlappingPeriodInActiveGroup(periodId, from, to)) {
+    const ok = await askConfirm(
+      "This period overlaps with another period in this group. Is that correct?",
+      "Overlapping period"
+    );
+
+    if (!ok) {
+      revertFn();
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/* =========================
+   8) Controls Collapse
+========================= */
 
 function setControlsCollapsed(v) {
   document.body.classList.toggle("controls-collapsed", !!v);
-  try {
-    localStorage.setItem(CONTROLS_KEY, v ? "1" : "0");
-  } catch {}
+  try { localStorage.setItem(CONTROLS_KEY, v ? "1" : "0"); } catch {}
 }
 
 function initControlsToggle() {
   const saved = (() => {
-    try {
-      return localStorage.getItem(CONTROLS_KEY);
-    } catch {
-      return null;
-    }
+    try { return localStorage.getItem(CONTROLS_KEY); } catch { return null; }
   })();
 
   const defaultCollapsed = window.matchMedia?.("(max-width: 720px)")?.matches ? true : false;
   setControlsCollapsed(saved === null ? defaultCollapsed : saved === "1");
 
   controlsToggle?.addEventListener("click", () => {
-    const isCollapsed = document.body.classList.contains("controls-collapsed");
-    setControlsCollapsed(!isCollapsed);
+    setControlsCollapsed(!document.body.classList.contains("controls-collapsed"));
   });
+}
+
+/* =========================
+   9) UI Helpers
+========================= */
+
+function syncBodyModeClass(mode = appState.uiMode) {
+  document.body.classList.toggle("is-edit", mode === "edit");
 }
 
 function renderGroupSelect() {
@@ -462,14 +705,10 @@ function updateGrandToggleUI() {
 
 function setControlsForMode(mode) {
   const isEdit = mode === "edit";
-  syncBodyModeClass();
+  syncBodyModeClass(mode);
 
   const enableAlways = [modeEditBtn, modeReviewBtn, totalsActiveBtn, totalsAllBtn, controlsToggle];
-
-  // Review: only safe actions + group switch
   const enableInReview = [groupSelect, exportBtn, exportAllBtn, pdfAllBtn];
-
-  // Edit: full control
   const enableInEdit = [
     groupSelect, addGroupBtn, renameGroupBtn, deleteGroupBtn,
     defaultRateInput,
@@ -497,13 +736,13 @@ function setControlsForMode(mode) {
   enableAlways.forEach((el) => setEl(el, true));
   (isEdit ? enableInEdit : enableInReview).forEach((el) => setEl(el, true));
 
-  // Import labels hide in Review
+  // show import inputs only in edit
   const importLabelEl = importInput?.closest("label");
   const importAllLabelEl = importAllInput?.closest("label");
   if (importLabelEl) importLabelEl.style.display = isEdit ? "" : "none";
   if (importAllLabelEl) importAllLabelEl.style.display = isEdit ? "" : "none";
 
-  // PDF button only in Review
+  // show PDF only in review
   if (pdfAllBtn) pdfAllBtn.style.display = isEdit ? "none" : "";
 }
 
@@ -518,18 +757,19 @@ function setMode(mode) {
     if (appState.uiMode === "review") {
       editView.hidden = true;
       reviewView.hidden = false;
-      renderReview(); // always refresh
+      renderReview();
     } else {
       reviewView.hidden = true;
       editView.hidden = false;
     }
   }
-
-  setControlsForMode(appState.uiMode);
+   
+   setControlsForMode(appState.uiMode);
+  updateFloatingAddClientVisibility();
 }
 
 /* =========================
-   7) Calculations
+   10) Calculations
 ========================= */
 
 function calcPeriodTotals(period, ratePercent) {
@@ -560,7 +800,6 @@ function calcGrandTotalsAllGroups() {
 
   appState.groups.forEach((gr) => {
     const st = gr.data;
-
     st.periods.forEach((p) => {
       const t = calcPeriodTotals(p, st.defaultRatePercent);
       grand.gross += t.gross;
@@ -579,9 +818,23 @@ function recalcAndRenderTotals() {
   const grand =
     appState.grandMode === "all" ? calcGrandTotalsAllGroups() : calcGrandTotalsActiveGroup();
 
-  if (grandGrossEl) grandGrossEl.textContent = fmt(grand.gross);
-  if (grandNetEl) grandNetEl.textContent = fmt(grand.net);
-  if (grandMyEl) grandMyEl.textContent = fmt(grand.my);
+ if (grandGrossEl){
+  grandGrossEl.textContent = fmt(grand.gross);
+  grandGrossEl.classList.add("total-flash");
+  setTimeout(()=>grandGrossEl.classList.remove("total-flash"),280);
+}
+
+if (grandNetEl){
+  grandNetEl.textContent = fmt(grand.net);
+  grandNetEl.classList.add("total-flash");
+  setTimeout(()=>grandNetEl.classList.remove("total-flash"),280);
+}
+
+if (grandMyEl){
+  grandMyEl.textContent = fmt(grand.my);
+  grandMyEl.classList.add("total-flash");
+  setTimeout(()=>grandMyEl.classList.remove("total-flash"),280);
+}
 
   // Period totals always reflect ACTIVE group
   const periodSections = elPeriods?.querySelectorAll?.(".period") ?? [];
@@ -597,10 +850,11 @@ function recalcAndRenderTotals() {
     if (nEl) nEl.textContent = fmt(t.net);
     if (mEl) mEl.textContent = fmt(t.my);
   });
+  renderMonthlyStats();
 }
 
 /* =========================
-   8) Render: EDIT
+   11) Render: EDIT
 ========================= */
 
 function render() {
@@ -612,7 +866,6 @@ function render() {
 
   if (defaultRateInput) defaultRateInput.value = String(st.defaultRatePercent);
 
-  // If templates missing, don't crash
   if (!elPeriods || !tplPeriod || !tplRow) {
     recalcAndRenderTotals();
     return;
@@ -624,10 +877,17 @@ function render() {
     const node = tplPeriod.content.cloneNode(true);
 
     const section = node.querySelector(".period");
+    const collapseBtn = node.querySelector(".period-collapse-btn");
+    const collapseMeta = node.querySelector(".period-range-preview");
+    const collapseGroupPreview = node.querySelector(".period-group-preview");
+    const groupBox = node.querySelector(".period-group-box");
+    const bodyWrap = node.querySelector(".period-body-wrap");
+
     const fromEl = node.querySelector(".fromDate");
     const toEl = node.querySelector(".toDate");
     const rowsTbody = node.querySelector(".rows");
     const addRowBtn = node.querySelector(".addRow");
+    const addPeriodInlineBtn = node.querySelector(".addPeriodInline");
     const removePeriodBtn = node.querySelector(".removePeriod");
 
     const totalGrossEl = node.querySelector(".total-gross");
@@ -636,20 +896,90 @@ function render() {
 
     if (fromEl) fromEl.value = p.from;
     if (toEl) toEl.value = p.to;
+    
+    if (collapseMeta) {
+  collapseMeta.textContent = formatPeriodPreview(p.from, p.to);
+}
 
-    fromEl?.addEventListener("change", () => {
-      p.from = fromEl.value;
-      saveState();
-      if (appState.uiMode === "review") renderReview();
-    });
+    if (collapseGroupPreview) {
+  collapseGroupPreview.textContent = g.name || "Group";
+}
 
-    toEl?.addEventListener("change", () => {
-      p.to = toEl.value;
-      saveState();
-      if (appState.uiMode === "review") renderReview();
-    });
+if (groupBox) {
+  groupBox.textContent = `Group: ${g.name || "Group"}`;
+}
 
-    // Rows
+if (section) {
+  section.classList.toggle("is-collapsed", isPeriodCollapsed(p.id));
+}
+
+   collapseBtn?.addEventListener("click", () => {
+  const next = !section.classList.contains("is-collapsed");
+  section.classList.toggle("is-collapsed", next);
+  setPeriodCollapsed(p.id, next);
+  updateFloatingAddClientVisibility();
+});
+
+    fromEl?.addEventListener("change", async () => {
+  const oldFrom = p.from;
+  const nextFrom = fromEl.value;
+
+  p.from = nextFrom;
+  
+  if (collapseMeta) {
+  collapseMeta.textContent = formatPeriodPreview(p.from, p.to);
+}
+
+  const ok = await validatePeriodWarnings(
+    p.id,
+    p.from,
+    p.to,
+    () => {
+  p.from = oldFrom;
+  fromEl.value = oldFrom || "";
+  if (collapseMeta) {
+    collapseMeta.textContent = formatPeriodPreview(p.from, p.to);
+       }
+    }
+  );
+
+  if (!ok) return;
+
+  saveState();
+  recalcAndRenderTotals();
+  if (appState.uiMode === "review") renderReview();
+});
+
+    toEl?.addEventListener("change", async () => {
+  const oldTo = p.to;
+  const nextTo = toEl.value;
+
+  p.to = nextTo;
+  
+  if (collapseMeta) {
+  collapseMeta.textContent = formatPeriodPreview(p.from, p.to);
+  }
+
+  const ok = await validatePeriodWarnings(
+    p.id,
+    p.from,
+    p.to,
+    () => {
+     p.to = oldTo;
+     toEl.value = oldTo || "";
+     if (collapseMeta) {
+       collapseMeta.textContent = formatPeriodPreview(p.from, p.to);
+     }
+   }
+  );
+
+  if (!ok) return;
+
+  saveState();
+  recalcAndRenderTotals();
+  if (appState.uiMode === "review") renderReview();
+});
+
     if (rowsTbody) rowsTbody.innerHTML = "";
 
     p.rows.forEach((r) => {
@@ -667,15 +997,8 @@ function render() {
       if (grossEl) grossEl.value = r.gross ?? "";
       if (netEl) netEl.value = r.net ?? "";
 
-      custEl?.addEventListener("input", () => {
-        r.customer = custEl.value;
-        saveState();
-      });
-
-      cityEl?.addEventListener("input", () => {
-        r.city = cityEl.value;
-        saveState();
-      });
+      custEl?.addEventListener("input", () => { r.customer = custEl.value; saveState(); });
+      cityEl?.addEventListener("input", () => { r.city = cityEl.value; saveState(); });
 
       grossEl?.addEventListener("input", () => {
         r.gross = grossEl.value;
@@ -705,7 +1028,26 @@ function render() {
     });
 
     addRowBtn?.addEventListener("click", () => {
-      p.rows.push(emptyRow());
+  p.rows.push(emptyRow());
+  saveState();
+  render();
+  if (appState.uiMode === "review") renderReview();
+
+  setTimeout(() => {
+    const inputs = elPeriods?.querySelectorAll?.("input.cust");
+    const lastInput = inputs?.[inputs.length - 1];
+    if (lastInput) lastInput.focus();
+  }, 50);
+});
+
+     addPeriodInlineBtn?.addEventListener("click", () => {
+      st.periods.push({
+        id: uuid(),
+        from: "",
+        to: "",
+        rows: [emptyRow()],
+      });
+
       saveState();
       render();
       if (appState.uiMode === "review") renderReview();
@@ -732,11 +1074,124 @@ function render() {
     elPeriods.appendChild(node);
   });
 
-  recalcAndRenderTotals();
+     recalcAndRenderTotals();
+  updateFloatingAddClientVisibility();
 }
 
 /* =========================
-   9) Render: REVIEW (with City)
+   12) Review Search
+========================= */
+
+let reviewSearchOutsideHandlerAttached = false;
+
+function buildReviewSearchIndex() {
+  const rows = [];
+
+  (appState.groups || []).forEach((gr) => {
+    const gName = gr?.name ?? "Group";
+    const periods = gr?.data?.periods || [];
+
+    periods.forEach((p) => {
+      const from = p?.from || "—";
+      const to = p?.to || "—";
+
+      (p?.rows || []).forEach((r) => {
+        const customer = (r?.customer ?? "").toString().trim();
+        const city = (r?.city ?? "").toString().trim();
+        if (!customer && !city) return;
+
+        rows.push({
+          group: gName,
+          from,
+          to,
+          customer,
+          city,
+          gross: fmt(parseMoney(r?.gross)),
+          net: fmt(parseMoney(r?.net)),
+        });
+      });
+    });
+  });
+
+  return rows;
+}
+
+function initReviewSearch() {
+  const searchEl = document.getElementById("reviewSearch");
+  const resultsEl = document.getElementById("reviewSearchResults");
+
+  if (!searchEl || !resultsEl) return;
+
+  const index = buildReviewSearchIndex();
+
+  const hide = () => {
+    resultsEl.style.display = "none";
+    resultsEl.innerHTML = "";
+  };
+
+  const clear = () => {
+    searchEl.value = "";
+    hide();
+  };
+
+  const renderResults = (list) => {
+    if (!list.length) {
+      resultsEl.style.display = "block";
+      resultsEl.innerHTML = `<div class="review-search-empty">No results</div>`;
+      return;
+    }
+
+    resultsEl.style.display = "block";
+    resultsEl.innerHTML = list.slice(0, 40).map(x => `
+      <div class="review-search-item">
+        <div class="review-search-name">${escapeHtml(x.customer || "Client")}</div>
+        <div class="review-search-meta">
+          <span><b>Group:</b> ${escapeHtml(x.group)}</span>
+          <span><b>Period:</b> ${escapeHtml(x.from)} → ${escapeHtml(x.to)}</span>
+          <span><b>City:</b> ${escapeHtml(x.city || "—")}</span>
+          <span><b>Gross:</b> ${escapeHtml(x.gross)}</span>
+          <span><b>Net:</b> ${escapeHtml(x.net)}</span>
+        </div>
+      </div>
+    `).join("");
+  };
+
+  searchEl.oninput = () => {
+    const q = searchEl.value.trim().toLowerCase();
+    if (!q) { hide(); return; }
+
+    const filtered = index.filter(x =>
+      (x.customer || "").toLowerCase().includes(q) ||
+      (x.city || "").toLowerCase().includes(q)
+    );
+
+    renderResults(filtered);
+  };
+
+  searchEl.onkeydown = (e) => {
+    if (e.key === "Escape") clear();
+  };
+
+  if (!reviewSearchOutsideHandlerAttached) {
+    reviewSearchOutsideHandlerAttached = true;
+
+    document.addEventListener("pointerdown", (e) => {
+      const wrap = document.querySelector(".review-search");
+      const currentSearch = document.getElementById("reviewSearch");
+      const currentResults = document.getElementById("reviewSearchResults");
+      if (!wrap || !currentSearch || !currentResults) return;
+
+      if (wrap.contains(e.target)) return;
+
+      currentSearch.value = "";
+      currentResults.style.display = "none";
+      currentResults.innerHTML = "";
+    }, { passive: true });
+  }
+}
+
+/* =========================
+   13) Render: REVIEW
 ========================= */
 
 function renderReview() {
@@ -762,10 +1217,11 @@ function renderReview() {
     <section class="review-card">
       <div class="review-head">
         <div class="review-search">
-        <input id="reviewSearch" class="review-search-input" type="text"
-         placeholder="Search client (name or city)..." autocomplete="off" />
-         <div id="reviewSearchResults" class="review-search-results" style="display:none;"></div>
-       </div>
+          <input id="reviewSearch" class="review-search-input" type="text"
+            placeholder="Search client (name or city)..." autocomplete="off" />
+          <div id="reviewSearchResults" class="review-search-results" style="display:none;"></div>
+        </div>
+
         <div>
           <h3 class="review-title">${escapeHtml(g.name)} — Review</h3>
           <div class="review-sub">${groupTotals.periods} periods • ${groupTotals.clients} rows • Default ${fmt(st.defaultRatePercent)}%</div>
@@ -789,119 +1245,58 @@ function renderReview() {
     </section>
   `;
 
-  const periodsHtml = st.periods
-    .map((p) => {
-      const t = calcPeriodTotals(p, st.defaultRatePercent);
-      const from = p.from || "—";
-      const to = p.to || "—";
+  const periodsHtml = st.periods.map((p) => {
+    const t = calcPeriodTotals(p, st.defaultRatePercent);
+    const from = p.from || "—";
+    const to = p.to || "—";
 
-      const clients = p.rows
-        .map((r) => {
-          const name = r.customer?.trim() || "Client";
-          const city = r.city?.trim() || "—";
-          return `
-            <div class="client-item">
-              <div>
-                <div class="client-name">${escapeHtml(name)}</div>
-                <div class="review-sub" style="margin:2px 0 0 0;">City: <b>${escapeHtml(city)}</b></div>
-              </div>
-              <div class="client-values">
-                <span>Gross:</span> <b>${fmt(parseMoney(r.gross))}</b>
-                <span>Net:</span> <b>${fmt(parseMoney(r.net))}</b>
-              </div>
-            </div>
-          `;
-        })
-        .join("");
-
+    const clients = p.rows.map((r) => {
+      const name = r.customer?.trim() || "Client";
+      const city = r.city?.trim() || "—";
       return `
-        <details class="period-card">
-          <summary>
-            <div class="period-meta">
-              <div class="period-range">${escapeHtml(from)} → ${escapeHtml(to)}</div>
-              <div class="period-mini">${p.rows.length} clients</div>
-            </div>
-
-            <div class="period-sum">
-              <span class="badge">Gross: <b>${fmt(t.gross)}</b></span>
-              <span class="badge">Net: <b>${fmt(t.net)}</b></span>
-              <span class="badge">My €: <b>${fmt(t.my)}</b></span>
-            </div>
-          </summary>
-
-          <div class="period-body">
-            <div class="client-list">
-              ${clients || `<div class="hint">No clients.</div>`}
-            </div>
+        <div class="client-item">
+          <div>
+            <div class="client-name">${escapeHtml(name)}</div>
+            <div class="review-sub" style="margin:2px 0 0 0;">City: <b>${escapeHtml(city)}</b></div>
           </div>
-        </details>
-      `;
-    })
-    .join("");
-
-  reviewView.innerHTML = header + periodsHtml;
-  initReviewSearch(); // <-- ეს ხაზი დაამატე
-}
-  // --- Review Search wiring ---
-  const searchEl = document.getElementById("reviewSearch");
-  const resultsEl = document.getElementById("reviewSearchResults");
-
-  if (searchEl && resultsEl) {
-    const allRows = [];
-    appState.groups.forEach((gr) => {
-      gr.data.periods.forEach((p) => {
-        p.rows.forEach((r) => {
-          allRows.push({
-            group: gr.name,
-            from: p.from || "—",
-            to: p.to || "—",
-            customer: (r.customer || "").toString(),
-            city: (r.city || "").toString(),
-            gross: parseMoney(r.gross),
-            net: parseMoney(r.net),
-          });
-        });
-      });
-    });
-
-    const renderResults = (list) => {
-      if (!list.length) {
-        resultsEl.style.display = "block";
-        resultsEl.innerHTML = `<div class="review-search-empty">No results</div>`;
-        return;
-      }
-
-      resultsEl.style.display = "block";
-      resultsEl.innerHTML = list.slice(0, 30).map(x => `
-        <div class="review-search-item">
-          <div class="review-search-name">${escapeHtml(x.customer || "Client")}</div>
-          <div class="review-search-meta">
-            <span><b>Group:</b> ${escapeHtml(x.group)}</span>
-            <span><b>Period:</b> ${escapeHtml(x.from)} → ${escapeHtml(x.to)}</span>
-            <span><b>City:</b> ${escapeHtml(x.city || "—")}</span>
-            <span><b>Gross:</b> ${fmt(x.gross)}</span>
-            <span><b>Net:</b> ${fmt(x.net)}</span>
+          <div class="client-values">
+            <span>Gross:</span> <b>${fmt(parseMoney(r.gross))}</b>
+            <span>Net:</span> <b>${fmt(parseMoney(r.net))}</b>
           </div>
         </div>
-      `).join("");
-    };
+      `;
+    }).join("");
 
-    searchEl.addEventListener("input", () => {
-      const q = searchEl.value.trim().toLowerCase();
-      if (!q) {
-        resultsEl.style.display = "none";
-        resultsEl.innerHTML = "";
-        return;
-      }
-      const filtered = allRows.filter(x =>
-        x.customer.toLowerCase().includes(q) || x.city.toLowerCase().includes(q)
-      );
-      renderResults(filtered);
-    });
-  }
+    return `
+      <details class="period-card">
+        <summary>
+          <div class="period-meta">
+            <div class="period-range">${escapeHtml(from)} → ${escapeHtml(to)}</div>
+            <div class="period-mini">${p.rows.length} clients</div>
+          </div>
+
+          <div class="period-sum">
+            <span class="badge">Gross: <b>${fmt(t.gross)}</b></span>
+            <span class="badge">Net: <b>${fmt(t.net)}</b></span>
+            <span class="badge">My €: <b>${fmt(t.my)}</b></span>
+          </div>
+        </summary>
+
+        <div class="period-body">
+          <div class="client-list">
+            ${clients || `<div class="hint">No clients.</div>`}
+          </div>
+        </div>
+      </details>
+    `;
+  }).join("");
+
+  reviewView.innerHTML = header + periodsHtml;
+  initReviewSearch();
+}
 
 /* =========================
-   10) File Helpers
+   14) File Helpers
 ========================= */
 
 function downloadJson(filename, dataObj) {
@@ -921,13 +1316,11 @@ function downloadJson(filename, dataObj) {
 function nowStamp() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(
-    d.getHours()
-  )}${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
 }
 
 /* =========================
-   11) Import ALL — Merge logic
+   15) Import ALL — Merge logic
 ========================= */
 
 function findGroupByName(name) {
@@ -980,7 +1373,7 @@ function mergeAppState(incomingState) {
 }
 
 /* =========================
-   12) PDF Export (ALL groups)
+   16) PDF Export (ALL groups)
 ========================= */
 
 function exportPdfAllGroups() {
@@ -1027,7 +1420,6 @@ function exportPdfAllGroups() {
   };
 
   const money = (n) => fmt(Number(n || 0));
-
   const overall = { gross: 0, net: 0, my: 0, groups: appState.groups.length };
 
   const groupsData = appState.groups.map((gr) => {
@@ -1083,7 +1475,6 @@ function exportPdfAllGroups() {
     st.periods.forEach((p, pi) => {
       const from = p.from || "—";
       const to = p.to || "—";
-
       const t = calcPeriodTotals(p, st.defaultRatePercent);
 
       textLine(`Period ${pi + 1}: ${from} → ${to}`, 11, true);
@@ -1109,19 +1500,14 @@ function exportPdfAllGroups() {
 
   const fileName = `client-totals_ALL_${nowStamp()}.pdf`;
 
-  // Small delay helps mobile browsers not freeze
   setTimeout(() => {
-    try {
-      doc.save(fileName);
-    } catch (e) {
-      console.error(e);
-      alert("PDF export failed (download issue). Try Chrome.");
-    }
+    try { doc.save(fileName); }
+    catch (e) { console.error(e); alert("PDF export failed (download issue). Try Chrome."); }
   }, 150);
 }
 
 /* =========================
-   13) Scroll-to-top
+   17) Scroll-to-top + Keyboard
 ========================= */
 
 function toggleToTop() {
@@ -1129,10 +1515,6 @@ function toggleToTop() {
   if (window.scrollY > 450) toTopBtn.classList.add("show");
   else toTopBtn.classList.remove("show");
 }
-
-/* =========================
-   14) Keyboard detect (mobile)
-========================= */
 
 (function initKeyboardDetect() {
   let baseH = window.innerHeight;
@@ -1146,7 +1528,7 @@ function toggleToTop() {
 })();
 
 /* =========================
-   15) Floating Add Client
+   18) Floating Add Client
 ========================= */
 
 function addClientToLastPeriod() {
@@ -1167,7 +1549,7 @@ function addClientToLastPeriod() {
 }
 
 /* =========================
-   16) Event Wiring
+   19) Events
 ========================= */
 
 modeEditBtn?.addEventListener("click", () => setMode("edit"));
@@ -1180,7 +1562,6 @@ groupSelect?.addEventListener("change", () => {
   if (appState.uiMode === "review") renderReview();
 });
 
-// Add group
 addGroupBtn?.addEventListener("click", () => {
   const name = prompt("Group name?", `Group ${appState.groups.length + 1}`);
   if (!name) return;
@@ -1199,7 +1580,6 @@ addGroupBtn?.addEventListener("click", () => {
   setMode("review");
 });
 
-// Rename group
 renameGroupBtn?.addEventListener("click", () => {
   const g = activeGroup();
   const name = prompt("New group name:", g.name);
@@ -1211,7 +1591,6 @@ renameGroupBtn?.addEventListener("click", () => {
   if (appState.uiMode === "review") renderReview();
 });
 
-// Delete group (keep at least 1)
 deleteGroupBtn?.addEventListener("click", async () => {
   if (appState.groups.length <= 1) {
     alert("You must keep at least 1 group.");
@@ -1230,7 +1609,6 @@ deleteGroupBtn?.addEventListener("click", async () => {
   if (appState.uiMode === "review") renderReview();
 });
 
-// Default %
 defaultRateInput?.addEventListener("input", () => {
   const g = activeGroup();
   g.data.defaultRatePercent = clampRate(defaultRateInput.value);
@@ -1239,23 +1617,16 @@ defaultRateInput?.addEventListener("input", () => {
   if (appState.uiMode === "review") renderReview();
 });
 
-// Add period
 addPeriodBtn?.addEventListener("click", () => {
   const g = activeGroup();
 
-  g.data.periods.push({
-    id: uuid(),
-    from: "",
-    to: "",
-    rows: [emptyRow()],
-  });
+  g.data.periods.push({ id: uuid(), from: "", to: "", rows: [emptyRow()] });
 
   saveState();
   render();
   if (appState.uiMode === "review") renderReview();
 });
 
-// Reset CURRENT group only
 resetBtn?.addEventListener("click", async () => {
   const g = activeGroup();
   const ok = await askConfirm(`Reset group "${g.name}"? This will clear all its data.`, "Reset group");
@@ -1267,14 +1638,12 @@ resetBtn?.addEventListener("click", async () => {
   if (appState.uiMode === "review") renderReview();
 });
 
-// Export ACTIVE group only
 exportBtn?.addEventListener("click", () => {
   const g = activeGroup();
   const payload = { type: "client-totals-group-backup", version: 1, group: g };
   downloadJson(`client-totals-${safeFileName(g.name)}_${nowStamp()}.json`, payload);
 });
 
-// Import into CURRENT group (replaces its data)
 importInput?.addEventListener("change", async () => {
   const file = importInput.files?.[0];
   if (!file) return;
@@ -1285,10 +1654,7 @@ importInput?.addEventListener("change", async () => {
 
     if (parsed?.type === "client-totals-group-backup" && parsed?.group?.data) {
       const g = activeGroup();
-      const ok = await askConfirm(
-        `Import will REPLACE data inside "${g.name}". Continue?`,
-        "Import group"
-      );
+      const ok = await askConfirm(`Import will REPLACE data inside "${g.name}". Continue?`, "Import group");
       if (!ok) return;
 
       g.name = (parsed.group.name ?? g.name).toString().trim() || g.name;
@@ -1308,7 +1674,6 @@ importInput?.addEventListener("change", async () => {
   }
 });
 
-// Export ALL groups
 exportAllBtn?.addEventListener("click", () => {
   const payload = {
     __type: "client_totals_all_groups",
@@ -1319,7 +1684,6 @@ exportAllBtn?.addEventListener("click", () => {
   downloadJson(`client-totals-ALL-groups_${nowStamp()}.json`, payload);
 });
 
-// Import ALL: MERGE or REPLACE
 importAllInput?.addEventListener("change", async () => {
   const file = importAllInput.files?.[0];
   if (!file) return;
@@ -1370,10 +1734,13 @@ importAllInput?.addEventListener("change", async () => {
   }
 });
 
-// Grand Total toggle
 totalsActiveBtn?.addEventListener("click", () => {
   appState.grandMode = "active";
   saveState();
+
+  const current = getCurrentMonthKey("active");
+  setSavedMonthCursor(current);
+
   updateGrandToggleUI();
   recalcAndRenderTotals();
 });
@@ -1381,11 +1748,14 @@ totalsActiveBtn?.addEventListener("click", () => {
 totalsAllBtn?.addEventListener("click", () => {
   appState.grandMode = "all";
   saveState();
+
+  const current = getCurrentMonthKey("all");
+  setSavedMonthCursor(current);
+
   updateGrandToggleUI();
   recalcAndRenderTotals();
 });
 
-// PDF ALL (Review only)
 pdfAllBtn?.addEventListener("click", () => {
   if (!pdfAllBtn) return;
 
@@ -1394,9 +1764,8 @@ pdfAllBtn?.addEventListener("click", () => {
   pdfAllBtn.textContent = "Generating PDF...";
 
   setTimeout(() => {
-    try {
-      exportPdfAllGroups();
-    } finally {
+    try { exportPdfAllGroups(); }
+    finally {
       setTimeout(() => {
         pdfAllBtn.disabled = false;
         pdfAllBtn.textContent = oldText;
@@ -1405,7 +1774,6 @@ pdfAllBtn?.addEventListener("click", () => {
   }, 50);
 });
 
-// Scroll-to-top
 window.addEventListener("scroll", toggleToTop);
 toggleToTop();
 
@@ -1413,43 +1781,37 @@ toTopBtn?.addEventListener("click", () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
-// Floating add client
 fabAddClient?.addEventListener("click", () => {
   if (appState.uiMode !== "edit") return;
   addClientToLastPeriod();
 });
 
 /* =========================
-   17) Init
+   20) Init
 ========================= */
 
-// Review default ONLY first-time (already handled by defaultAppState())
-// so: do NOT overwrite every time.
-
+initTheme();
 initControlsToggle();
+initSummaryPanel();
 render();
-setMode("review");
+setMode(appState.uiMode);
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js').then(reg => {
+/* =========================
+   21) Service Worker (update box)
+========================= */
 
-    reg.addEventListener('updatefound', () => {
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js").then((reg) => {
+    reg.addEventListener("updatefound", () => {
       const newWorker = reg.installing;
-
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-
-          document.getElementById("updateBox").style.display = "block";
-
-          document.getElementById("updateBtn").onclick = () => {
-            window.location.reload();
-          };
-
+      newWorker.addEventListener("statechange", () => {
+        if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+          const box = document.getElementById("updateBox");
+          const btn = document.getElementById("updateBtn");
+          if (box) box.style.display = "block";
+          if (btn) btn.onclick = () => window.location.reload();
         }
       });
-
     });
-
   });
 }
-
