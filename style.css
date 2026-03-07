@@ -296,7 +296,15 @@ body{
 .tbl td input:focus{ border-color: rgba(93,212,255,.65); }
 
 .total-row td{
-  background: rgba(52,211,153,.18);
+  background: linear-gradient(
+    90deg,
+    rgba(34,197,94,.30),
+    rgba(16,185,129,.24)
+  );
+  border:1px solid rgba(34,197,94,.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 6px 18px rgba(16,185,129,.18);
   font-weight:900;
   border-bottom:none;
   letter-spacing:.3px;
@@ -714,19 +722,39 @@ body[data-theme="light"] .tbl th{
   color:#475569;
 }
 
-/* Buttons in light theme (still glassy) */
+/* Buttons in light theme (stronger for sunlight) */
 body[data-theme="light"] .btn{
-  background: rgba(15,23,42,.07);
-  border-color: rgba(15,23,42,.18);
+  background: rgba(15,23,42,.11);
+  border-color: rgba(15,23,42,.24);
   color:#0f172a;
+  box-shadow: 0 2px 8px rgba(15,23,42,.10);
 }
+
 body[data-theme="light"] .btn.primary{
-  background: rgba(93,212,255,.22);
-  border-color: rgba(93,212,255,.40);
+  background: rgba(93,212,255,.30);
+  border-color: rgba(93,212,255,.52);
+  box-shadow: 0 2px 8px rgba(93,212,255,.14);
 }
+
 body[data-theme="light"] .btn.danger{
-  background: rgba(255,93,93,.14);
-  border-color: rgba(255,93,93,.30);
+  background: rgba(255,93,93,.20);
+  border-color: rgba(255,93,93,.38);
+  box-shadow: 0 2px 8px rgba(255,93,93,.10);
+}
+
+body[data-theme="light"] .btn:hover{
+  background: rgba(15,23,42,.15);
+  border-color: rgba(15,23,42,.30);
+}
+
+body[data-theme="light"] .btn.primary:hover{
+  background: rgba(93,212,255,.36);
+  border-color: rgba(93,212,255,.60);
+}
+
+body[data-theme="light"] .btn.danger:hover{
+  background: rgba(255,93,93,.26);
+  border-color: rgba(255,93,93,.46);
 }
 
 /* Toggle buttons */
@@ -744,8 +772,18 @@ body[data-theme="light"] .toggle-btn.active{
 }
 
 /* Total row (not neon) */
+
 body[data-theme="light"] .total-row td{
-  background: rgba(52,211,153,.22);
+  background: linear-gradient(
+    90deg,
+    rgba(34,197,94,.35),
+    rgba(16,185,129,.28)
+  );
+  border:1px solid rgba(16,185,129,.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.45),
+    0 6px 16px rgba(16,185,129,.22);
+  color:#064e3b;
   font-weight:900;
   letter-spacing:.3px;
 }
@@ -883,10 +921,18 @@ body[data-theme="light"] .to-top{
 }
 
 body[data-theme="light"] .pill{
-  background: rgba(16,185,129,.22);
-  border: 1px solid rgba(16,185,129,.38);
-  color:#064e3b;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,.75),
+    rgba(220,252,231,.85)
+  );
+  border:1px solid rgba(16,185,129,.45);
+  color:#065f46;
   font-weight:800;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.7),
+    0 6px 14px rgba(16,185,129,.20);
 }
 
 body[data-theme="light"] .client-values{
@@ -1380,4 +1426,16 @@ body[data-theme="light"] .summary.card{
     0 0 0 1px rgba(180,140,40,0.45),
     0 12px 22px rgba(0,0,0,0.12),
     0 0 38px rgba(180,140,40,0.28);
+}
+
+body[data-theme="dark"] .btn{
+  box-shadow: 0 2px 8px rgba(0,0,0,.22);
+}
+
+body[data-theme="dark"] .btn.primary{
+  box-shadow: 0 2px 10px rgba(93,212,255,.10);
+}
+
+body[data-theme="dark"] .btn.danger{
+  box-shadow: 0 2px 10px rgba(255,93,93,.08);
 }
