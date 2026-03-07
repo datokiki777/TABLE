@@ -118,20 +118,32 @@
         </div>
       </div>
 
-      <div class="monthly-grid">
-        <div class="kpi">
-          <div class="kpi-label">Month Gross</div>
-          <div class="kpi-value" id="monthGross">0.00</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Month Net</div>
-          <div class="kpi-value" id="monthNet">0.00</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Month My €</div>
-          <div class="kpi-value" id="monthMy">0.00</div>
-        </div>
-      </div>
+        <div class="monthly-grid">
+
+  <div class="month-row">
+    <span>Month Gross</span>
+    <b id="monthGross">0.00</b>
+  </div>
+
+  <div class="month-row">
+    <span>Month Net</span>
+    <b id="monthNet">0.00</b>
+  </div>
+
+  <div class="month-row">
+    <span>Month My €</span>
+    <b id="monthMy">0.00</b>
+  </div>
+
+  <div class="month-row">
+    <span>Done / Fail</span>
+    <div class="month-badges">
+      <span class="badge-done" id="monthDone">0</span>
+      <span class="badge-fail" id="monthFail">0</span>
+    </div>
+  </div>
+
+</div>
     </div>
   </div>
 </section>
