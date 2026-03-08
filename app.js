@@ -1644,6 +1644,22 @@ function mergeAppState(incomingState) {
   }
 }
 
+  function calcGroupStatusCounts(group) {
+  let done = 0;
+  let fail = 0;
+  let fixed = 0;
+
+  (group?.data?.periods || []).forEach((p) => {
+    (p.rows || []).forEach((r) => {
+      if (r.done === "done") done++;
+      else if (r.done === "fail") fail++;
+      else if (r.done === "fixed") fixed++;
+    });
+  });
+
+  return { done, fail, fixed };
+}
+
 /* =========================
    17) PDF Export
 ========================= */
@@ -1731,13 +1747,29 @@ function exportPdfAllGroups() {
   hr();
 
   groupsData.forEach(({ gr, st, groupTotals }, gi) => {
+    const statusCounts = calcGroupStatusCounts(gr);
     textLine(`GROUP: ${gr.name}`, 13, true);
     textLine(
       `Default %: ${money(st.defaultRatePercent)}%   Periods: ${groupTotals.periods}   Rows: ${groupTotals.rows}`,
       10,
       false
     );
-    textLine(
+    addPageIfNeeded(lineH);
+     doc.setFont("helvetica", "bold");
+     doc.setFontSize(10);
+
+     doc.setTextColor(30, 160, 80);
+     doc.text(`Done: ${statusCounts.done}`, margin, y);
+
+     doc.setTextColor(220, 60, 60);
+     doc.text(`Fail: ${statusCounts.fail}`, margin + 34, y);
+
+     doc.setTextColor(215, 170, 20);
+     doc.text(`Fixed: ${statusCounts.fixed}`, margin + 64, y);
+
+    doc.setTextColor(0, 0, 0);
+      y += lineH;
+        textLine(
       `Gross: ${money(groupTotals.gross)}   Net: ${money(groupTotals.net)}   My €: ${money(groupTotals.my)}`,
       11,
       true
@@ -1763,13 +1795,40 @@ function exportPdfAllGroups() {
         const rn = money(parseMoney(r.net));
 
         const state = ["none", "done", "fail", "fixed"].includes(r.done) ? r.done : "none";
-        const statusText =
-          state === "done" ? " | Status: Done"
-          : state === "fail" ? " | Status: Fail"
-          : state === "fixed" ? " | Status: Fixed"
-          : "";
 
-        textLine(`• ${name} [${city}] | Gross: ${rg} | Net: ${rn}${statusText}`, 10, false);
+const baseText = `• ${name} [${city}] | Gross: ${rg} | Net: ${rn}`;
+const statusLabel =
+  state === "done" ? " Done"
+  : state === "fail" ? " Fail"
+  : state === "fixed" ? " Fixed"
+  : "";
+
+doc.setFont("helvetica", "normal");
+doc.setFontSize(10);
+
+const baseLines = doc.splitTextToSize(baseText, maxW);
+
+baseLines.forEach((ln, lineIndex) => {
+  addPageIfNeeded(lineH);
+
+  doc.setTextColor(0, 0, 0);
+  doc.text(ln, margin, y);
+
+  if (lineIndex === baseLines.length - 1 && statusLabel) {
+    const baseWidth = doc.getTextWidth(ln);
+    const statusX = margin + baseWidth + 2;
+
+    if (state === "done") doc.setTextColor(30, 160, 80);
+    else if (state === "fail") doc.setTextColor(220, 60, 60);
+    else if (state === "fixed") doc.setTextColor(215, 170, 20);
+
+    doc.text(statusLabel, statusX, y);
+  }
+
+  y += lineH;
+});
+
+doc.setTextColor(0, 0, 0);
       });
 
       hr();
