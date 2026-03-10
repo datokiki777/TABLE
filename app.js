@@ -1407,15 +1407,19 @@ function buildReviewSearchIndex() {
         if (!customer && !city) return;
 
         rows.push({
-        group: gName,
-        from,
-        to,
-        customer,
-        city,
-        gross: fmt(parseMoney(r?.gross)),
-        net: fmt(parseMoney(r?.net)),
-        status: ["done", "fail", "fixed"].includes(r?.done) ? r.done : "none",
-       });
+  groupId: gr.id,
+  periodId: p.id,
+  rowId: r.id,
+
+  group: gName,
+  from,
+  to,
+  customer,
+  city,
+  gross: fmt(parseMoney(r?.gross)),
+  net: fmt(parseMoney(r?.net)),
+  status: ["done", "fail", "fixed"].includes(r?.done) ? r.done : "none",
+});
       });
     });
   });
@@ -1431,6 +1435,35 @@ function buildReviewSearchIndex() {
   const reg = new RegExp(`(${escapedQuery})`, "ig");
 
   return safe.replace(reg, `<mark class="search-highlight">$1</mark>`);
+}
+
+function goToClientFromSearch(item) {
+  if (!item) return;
+
+  appState.activeGroupId = item.groupId;
+  saveState();
+
+  setPeriodCollapsed(item.periodId, false);
+  setMode("edit");
+  render();
+
+  requestAnimationFrame(() => {
+    const periodEl = document.querySelector(`.period[data-period-id="${item.periodId}"]`);
+    const rowEl = document.querySelector(`tr[data-row-id="${item.rowId}"]`);
+
+    if (periodEl) {
+      periodEl.classList.remove("is-collapsed");
+    }
+
+    if (rowEl) {
+      rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      rowEl.classList.add("row-highlight");
+
+      setTimeout(() => {
+        rowEl.classList.remove("row-highlight");
+      }, 1800);
+    }
+  });
 }
 
 function initReviewSearch() {
@@ -1450,40 +1483,70 @@ function initReviewSearch() {
     searchEl.value = "";
     hide();
   };
+  
+  const bindSearchResultClicks = (list) => {
+  const items = resultsEl.querySelectorAll(".review-search-item");
+
+  items.forEach((el, index) => {
+    const item = list[index];
+    if (!item) return;
+
+    el.style.cursor = "pointer";
+
+    el.onclick = async () => {
+      const ok = await askConfirm(
+        "Open this client in Edit mode?",
+        "Open client"
+      );
+
+      if (!ok) return;
+
+      searchEl.value = "";
+      resultsEl.style.display = "none";
+      resultsEl.innerHTML = "";
+
+      goToClientFromSearch(item);
+    };
+  });
+};
 
    const renderResults = (list, q) => {
-    if (!list.length) {
-      resultsEl.style.display = "block";
-      resultsEl.innerHTML = `<div class="review-search-empty">No results</div>`;
-      return;
-    }
+  const limited = list.slice(0, 40);
 
+  if (!limited.length) {
     resultsEl.style.display = "block";
-    resultsEl.innerHTML = list.slice(0, 40).map(x => `
-  <div class="review-search-item">
-    <div class="review-search-name-row">
-      <div class="review-search-name">${highlightMatch(x.customer || "Client", q)}</div>
-      ${
-        x.status === "done"
-          ? `<span class="search-status search-status-done">Done</span>`
-          : x.status === "fail"
-          ? `<span class="search-status search-status-fail">Fail</span>`
-          : x.status === "fixed"
-          ? `<span class="search-status search-status-fixed">Fixed</span>`
-          : ``
-      }
-    </div>
+    resultsEl.innerHTML = `<div class="review-search-empty">No results</div>`;
+    return;
+  }
 
-    <div class="review-search-meta">
-      <span><b>Group:</b> ${escapeHtml(x.group)}</span>
-      <span><b>Period:</b> ${escapeHtml(x.from)} → ${escapeHtml(x.to)}</span>
-      <span><b>City:</b> ${highlightMatch(x.city || "—", q)}</span>
-      <span><b>Gross:</b> ${escapeHtml(x.gross)}</span>
-      <span><b>Net:</b> ${escapeHtml(x.net)}</span>
+  resultsEl.style.display = "block";
+  resultsEl.innerHTML = limited.map(x => `
+    <div class="review-search-item">
+      <div class="review-search-name-row">
+        <div class="review-search-name">${highlightMatch(x.customer || "Client", q)}</div>
+        ${
+          x.status === "done"
+            ? `<span class="search-status search-status-done">Done</span>`
+            : x.status === "fail"
+            ? `<span class="search-status search-status-fail">Fail</span>`
+            : x.status === "fixed"
+            ? `<span class="search-status search-status-fixed">Fixed</span>`
+            : ``
+        }
+      </div>
+
+      <div class="review-search-meta">
+        <span><b>Group:</b> ${escapeHtml(x.group)}</span>
+        <span><b>Period:</b> ${escapeHtml(x.from)} → ${escapeHtml(x.to)}</span>
+        <span><b>City:</b> ${highlightMatch(x.city || "—", q)}</span>
+        <span><b>Gross:</b> ${escapeHtml(x.gross)}</span>
+        <span><b>Net:</b> ${escapeHtml(x.net)}</span>
+      </div>
     </div>
-  </div>
-`).join("");
-  };
+  `).join("");
+
+  bindSearchResultClicks(limited);
+};
 
   searchEl.oninput = () => {
     const q = searchEl.value.trim().toLowerCase();
