@@ -2400,15 +2400,23 @@ if ("serviceWorker" in navigator) {
 
           const bar = document.getElementById("updateBar");
           const btn = document.getElementById("updateBtn");
+          const exportBtn = document.getElementById("updateExportBtn");
 
           if (bar) bar.style.display = "flex";
 
+          if (exportBtn) {
+           exportBtn.onclick = () => {
+          const exportAllBtn = document.getElementById("exportAllBtn");
+          if (exportAllBtn) exportAllBtn.click();
+             };
+           }
+
           if (btn) {
-            btn.onclick = () => {
-              newWorker.postMessage({ action: "skipWaiting" });
-              window.location.reload();
-            };
-          }
+          btn.onclick = () => {
+          newWorker.postMessage({ action: "skipWaiting" });
+          window.location.reload();
+           };
+         }
         }
       });
     });
