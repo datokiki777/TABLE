@@ -350,8 +350,15 @@
 
   <!-- Update Available Bar -->
 <div id="updateBar" class="update-bar" style="display:none;">
-  <span>New version available</span>
-  <button id="updateBtn" class="btn small primary">Update</button>
+  <div class="update-copy">
+    <div class="update-title">New version available</div>
+    <div class="update-text">Back up your data before updating.</div>
+  </div>
+
+  <div class="update-actions">
+    <button id="updateExportBtn" class="btn small">Export All</button>
+    <button id="updateBtn" class="btn small primary">Update</button>
+  </div>
 </div>
   
   <script src="app.js"></script>
