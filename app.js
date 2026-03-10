@@ -2386,3 +2386,31 @@ if ("serviceWorker" in navigator) {
     });
   });
 }
+
+// PWA update detection
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistration().then(reg => {
+    if (!reg) return;
+
+    reg.addEventListener("updatefound", () => {
+      const newWorker = reg.installing;
+
+      newWorker.addEventListener("statechange", () => {
+        if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+
+          const bar = document.getElementById("updateBar");
+          const btn = document.getElementById("updateBtn");
+
+          if (bar) bar.style.display = "flex";
+
+          if (btn) {
+            btn.onclick = () => {
+              newWorker.postMessage({ action: "skipWaiting" });
+              window.location.reload();
+            };
+          }
+        }
+      });
+    });
+  });
+}
