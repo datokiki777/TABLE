@@ -1,9 +1,9 @@
 {
   "name": "Client Totals",
   "short_name": "Totals",
-  "id": "./",
-  "start_url": "./",
-  "scope": "./",
+  "id": "/TOTALS/",
+  "start_url": "/TOTALS/",
+  "scope": "/TOTALS/",
   "display": "standalone",
   "display_override": ["standalone"],
   "background_color": "#0b1220",
