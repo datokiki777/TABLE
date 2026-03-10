@@ -2456,3 +2456,14 @@ window.addEventListener("appinstalled", () => {
   const installBar = document.getElementById("installBar");
   if (installBar) installBar.style.display = "none";
 });
+
+
+
+window.addEventListener("load", () => {
+  const bar = document.getElementById("updateBar");
+  if (bar) {
+    setTimeout(() => {
+      bar.style.display = "flex";
+    }, 700);
+  }
+});
