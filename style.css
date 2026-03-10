@@ -2283,3 +2283,27 @@ html[data-theme="dark"] #textPromptInput{
   box-shadow: 0 6px 20px rgba(0,0,0,0.35);
   z-index: 9999;
 }
+
+.update-copy{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.update-title{
+  font-weight:700;
+  line-height:1.1;
+}
+
+.update-text{
+  font-size:13px;
+  color:#9db0d6;
+  line-height:1.2;
+}
+
+.update-actions{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin-left:8px;
+}
