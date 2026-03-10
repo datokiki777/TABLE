@@ -2387,36 +2387,63 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-// PWA update detection
+// PWA update detection — stable version
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.getRegistration().then(reg => {
+  let refreshing = false;
+
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+
+  navigator.serviceWorker.getRegistration().then((reg) => {
     if (!reg) return;
 
-    reg.addEventListener("updatefound", () => {
-      const newWorker = reg.installing;
+    const showUpdateBar = (worker) => {
+      const bar = document.getElementById("updateBar");
+      const btn = document.getElementById("updateBtn");
+      const exportBtn = document.getElementById("updateExportBtn");
 
-      newWorker.addEventListener("statechange", () => {
-        if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+      if (bar) bar.style.display = "flex";
 
-          const bar = document.getElementById("updateBar");
-          const btn = document.getElementById("updateBtn");
-          const exportBtn = document.getElementById("updateExportBtn");
-
-          if (bar) bar.style.display = "flex";
-
-          if (exportBtn) {
-           exportBtn.onclick = () => {
+      if (exportBtn) {
+        exportBtn.onclick = () => {
           const exportAllBtn = document.getElementById("exportAllBtn");
           if (exportAllBtn) exportAllBtn.click();
-             };
-           }
+        };
+      }
 
-          if (btn) {
-          btn.onclick = () => {
-          newWorker.postMessage({ action: "skipWaiting" });
-          window.location.reload();
-           };
-         }
+      if (btn) {
+        btn.onclick = () => {
+          btn.disabled = true;
+          btn.textContent = "Updating...";
+
+          if (worker) {
+            worker.postMessage({ action: "skipWaiting" });
+          } else {
+            window.location.reload();
+          }
+        };
+      }
+    };
+
+    // თუ ახალი worker უკვე waiting-შია
+    if (reg.waiting) {
+      showUpdateBar(reg.waiting);
+    }
+
+    // თუ ახლა იპოვა ახალი worker
+    reg.addEventListener("updatefound", () => {
+      const newWorker = reg.installing;
+      if (!newWorker) return;
+
+      newWorker.addEventListener("statechange", () => {
+        if (
+          newWorker.state === "installed" &&
+          navigator.serviceWorker.controller
+        ) {
+          showUpdateBar(newWorker);
         }
       });
     });
@@ -2456,5 +2483,4 @@ window.addEventListener("appinstalled", () => {
   const installBar = document.getElementById("installBar");
   if (installBar) installBar.style.display = "none";
 });
-
 
