@@ -2414,3 +2414,37 @@ if ("serviceWorker" in navigator) {
     });
   });
 }
+
+// PWA install prompt
+let deferredInstallPrompt = null;
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+
+  const installBar = document.getElementById("installBar");
+  const installBtn = document.getElementById("installBtn");
+
+  if (installBar) installBar.style.display = "flex";
+
+  if (installBtn) {
+    installBtn.onclick = async () => {
+      if (!deferredInstallPrompt) return;
+
+      deferredInstallPrompt.prompt();
+      try {
+        await deferredInstallPrompt.userChoice;
+      } catch (err) {}
+
+      deferredInstallPrompt = null;
+      if (installBar) installBar.style.display = "none";
+    };
+  }
+});
+
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+
+  const installBar = document.getElementById("installBar");
+  if (installBar) installBar.style.display = "none";
+});
