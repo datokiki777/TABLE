@@ -1,4 +1,4 @@
-const CACHE = "client-totals-shell-v4";
+const CACHE = "client-totals-shell-v5";
 
 const CORE_ASSETS = [
   "./",
@@ -107,6 +107,7 @@ self.addEventListener("message", (event) => {
   }
 
 });
+
 
 
 
