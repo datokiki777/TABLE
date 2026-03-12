@@ -402,6 +402,7 @@ function openStatusListModal(status, clients) {
   if (!clients.length) {
     statusListBody.innerHTML = `<div class="status-list-empty">No clients found with this status.</div>`;
     statusListModal.style.display = "flex";
+    history.pushState({ modal: "statusList" }, "");
     return;
   }
   
@@ -468,6 +469,7 @@ function bindStatusListItemClicks(clients) {
   `).join("");
 
   statusListModal.style.display = "flex";
+  history.pushState({ modal: "statusList" }, "");
   bindStatusListItemClicks(clients);
 }
 
@@ -546,6 +548,7 @@ function askConfirm(message, title = "Confirm") {
     confirmTitleEl.textContent = title;
     confirmTextEl.textContent = message;
     confirmBackdrop.style.display = "flex";
+    history.pushState({ modal: "confirm" }, "");
 
     const cleanup = () => {
       confirmBackdrop.style.display = "none";
@@ -601,6 +604,7 @@ function askText(title, message, defaultValue = "", okLabel = "Save") {
     textPromptOk.textContent = okLabel;
 
     textPromptModal.style.display = "flex";
+    history.pushState({ modal: "textPrompt" }, "");
 
     const cleanup = () => {
       textPromptModal.style.display = "none";
@@ -2482,5 +2486,30 @@ window.addEventListener("appinstalled", () => {
 
   const installBar = document.getElementById("installBar");
   if (installBar) installBar.style.display = "none";
+});
+
+/* =========================
+   Android Back Button
+========================= */
+
+window.addEventListener("popstate", () => {
+  // confirmBackdrop
+  if (confirmBackdrop && confirmBackdrop.style.display === "flex") {
+    confirmBackdrop.style.display = "none";
+    if (confirmNoBtn) confirmNoBtn.onclick?.();
+    return;
+  }
+
+  // textPromptModal
+  if (textPromptModal && textPromptModal.style.display === "flex") {
+    textPromptModal.style.display = "none";
+    return;
+  }
+
+  // statusListModal
+  if (statusListModal && statusListModal.style.display === "flex") {
+    closeStatusListModal();
+    return;
+  }
 });
 
